@@ -1,0 +1,109 @@
+version: "2.1"
+
+services:
+
+  ###############################################################
+  #    Functions service
+  ###############################################################
+
+  e-commerce-functions:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    expose:
+      - "1108"
+
+  ###############################################################
+  #    StateFun runtime
+  ###############################################################
+
+#  statefun:
+#    image: apache/flink-statefun-playground:3.2.0-1.0
+#    ports:
+#      - "8081:8081"
+#      - "8090:8090"
+#      - "8091:8091"
+#    depends_on:
+#      - e-commerce-functions
+#    volumes:
+#      - ./module.yaml:/module.yaml
+
+  master:
+    image: apache/flink-statefun-playground:3.2.0-1.0
+    expose:
+      - 6123
+    ports:
+      - "8081:8081"
+      - "8090:8090" # ingress
+    environment:
+      ROLE: master
+      MASTER_HOST: master
+    volumes:
+      #      - ./module.yaml:/opt/statefun/modules/hesse/module.yaml
+      - ./module.yaml:/module.yaml
+#      - ./flink-conf.yaml:/opt/flink/conf/flink-conf.yaml
+
+  worker:
+    image: apache/flink-statefun-playground:3.2.0-1.0
+    expose:
+      - 6121
+      - 6122
+    depends_on:
+      - master
+      - kafka
+      - e-commerce-functions
+    links:
+      - master:master
+      - kafka:kafka
+      - e-commerce-functions:e-commerce-functions
+    environment:
+      ROLE: worker
+      MASTER_HOST: master
+    volumes:
+      - ./module.yaml:/module.yaml
+#      - ./flink-conf.yaml:/opt/flink/conf/flink-conf.yaml
+
+
+  ###############################################################
+  #    Kafka for ingress and egress
+  ###############################################################
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.4.3
+    container_name: zookeeper
+    expose:
+      - 2181
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:5.4.3
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    expose:
+      - 29092
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT, EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: EXTERNAL://kafka:9092, INTERNAL://kafka:29092
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:9092, INTERNAL://kafka:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+# docker exec -it kafka kafka-console-consumer --topic hello --from-beginning --bootstrap-server kafka:29092
+
+# docker exec -it e-commerce-master-kafka-1 kafka-topics --create --topic test-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
+
+#  docker exec -it e-commerce-master-kafka-1 kafka-console-producer --topic test-topic --broker-list localhost:9092
+
+#  docker exec -it e-commerce-master-kafka-1 kafka-console-consumer --topic test-topic --from-beginning --bootstrap-server localhost:9092
+
+#  docker-compose up --scale worker=3

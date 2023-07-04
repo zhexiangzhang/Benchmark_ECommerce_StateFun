@@ -1,0 +1,23 @@
+
+
+@ analysis
+<!--
+        curl
+        -X PUT
+        -H "Content-Type: application/vnd.e-commerce.types/UserLogin"  （根据消息的名称空间和name来定）
+        -d '{"user_id": "1", "user_name": "Joe"}'
+        localhost:8090/e-commerce.fns/login/1        （根据函数TypeName.typeNameOf注册时候的namespace和name来定）
+
+        curl -X GET localhost:8091/greeting
+-->
+
+@ basic greeting example
+curl -X PUT -H "Content-Type: application/vnd.e-commerce.types/UserLogin" -d "{\"user_id\": \"1\", \"user_name\": \"Joe\"}" localhost:8090/e-commerce.fns/login/1
+curl -X GET localhost:8091/greeting
+
+
+curl -X PUT -H "Content-Type: application/vnd.e-commerce.types/AddToCart" -d "{\"customerId\": 1, \"item\": {\"productId\": 123, \"unitPrice\": 10.0, \"quantity\": 2}}" localhost:8090/e-commerce.fns/cart/1
+大问题，出口只有一个，不是根据id，每个人都能取
+curl -X GET -H "Content-Type: application/vnd.e-commerce.types/GetCart" localhost:8090/e-commerce.fns/cart/1
+curl -X GET localhost:8091/getCart
+curl -X GET -H "Content-Type: application/vnd.e-commerce.types/ClearCart" localhost:8090/e-commerce.fns/cart/1
