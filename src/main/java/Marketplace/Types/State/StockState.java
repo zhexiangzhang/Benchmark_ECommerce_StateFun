@@ -44,10 +44,20 @@ public class StockState {
     }
 
     @JsonIgnore
-    public void increaseStock(Long product_id, int num) {
-        StockItem stockItem = this.getItem(product_id);
-        stockItem.setQty_available(stockItem.getQty_available() + num);
-        stockItem.setUpdatedAt(LocalDateTime.now());
+    public String increaseStock(Long product_id, StockItem newStockItem) {
+        // return the change in stock
+        StockItem oldStockItem = this.getItem(product_id);
+
+        int addAvailable = newStockItem.getQty_available();
+        int oldAvailable = oldStockItem.getQty_available();
+        int newAvailable = oldAvailable + addAvailable;
+
+        oldStockItem.setQty_available(newAvailable);
+        oldStockItem.setYtd(newStockItem.getYtd());
+        oldStockItem.setData(newStockItem.getData());
+        oldStockItem.setUpdatedAt(LocalDateTime.now());
+
+        return " oldAvailable number: " + oldAvailable + ", newAvailable number : " + newAvailable;
     }
 
     @JsonIgnore

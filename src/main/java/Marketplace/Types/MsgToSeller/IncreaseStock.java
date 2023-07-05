@@ -1,6 +1,7 @@
 package Marketplace.Types.MsgToSeller;
 
 import Common.Entity.BasketItem;
+import Common.Entity.StockItem;
 import Marketplace.Constant.Constants;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,18 +24,15 @@ public class IncreaseStock {
                     mapper::writeValueAsBytes,
                     bytes -> mapper.readValue(bytes, IncreaseStock.class));
 
-    @JsonProperty("productId")
-    private long productId;
-    @JsonProperty("number")
-    private int number;
+    @JsonProperty("stockItem")
+    private StockItem stockItem;
 
     public IncreaseStock() {
     }
 
     @JsonCreator
-    public IncreaseStock(@JsonProperty("productId") long productId,
-                     @JsonProperty("number") int number) {
-        this.productId = productId;
-        this.number = number;
+    public IncreaseStock(
+                     @JsonProperty("stockItem") StockItem stockItem) {
+        this.stockItem = stockItem;
     }
 }

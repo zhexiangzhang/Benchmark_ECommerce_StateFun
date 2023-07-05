@@ -1,7 +1,6 @@
 package Marketplace.Types.State;
 
 import Common.Entity.Product;
-import Common.Entity.Seller;
 import Marketplace.Constant.Constants;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -48,7 +47,7 @@ public class ProductState {
 
     @JsonIgnore
     public void addProduct(Product product) {
-        products.put(product.getId(), product);
+        products.put(product.getProduct_id(), product);
     }
 
 //    @JsonIgnore
@@ -60,7 +59,7 @@ public class ProductState {
 //    find all products of a seller
     public Product[] getProductsOfSeller(Long seller_id) {
         List<Product> productsOfSeller = products.values().stream()
-                .filter(product -> product.getSellerId() == seller_id)
+                .filter(product -> product.getSeller_id() == seller_id)
                 .collect(Collectors.toList());
 
         return productsOfSeller.toArray(new Product[productsOfSeller.size()]);

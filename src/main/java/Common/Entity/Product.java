@@ -1,7 +1,6 @@
 package Common.Entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -17,41 +16,51 @@ import java.time.LocalDateTime;
 @Setter
 @ToString
 public class Product {
-    @JsonProperty("id")
-    private Long id;
+    @JsonProperty("product_id") private long product_id;
+    @JsonProperty("seller_id") private Long seller_id;
+    @JsonProperty("name") private String name;
+    @JsonProperty("sku") private String sku;
+    @JsonProperty("category") private String category;
+    @JsonProperty("description") private String description;
+    @JsonProperty("price") private Double price;
+    @JsonProperty("freight_value") private Double freight_value;
+    @JsonProperty("status") private String status = "approved";
+    @JsonProperty("active") private boolean isActive;
 
-    @JsonProperty("sellerId")
-    private Long sellerId;
-
-    @JsonProperty("name")
-    private String name;
-
-    @JsonProperty("price")
-    private Double price;
-
-    @JsonProperty("is_active")
-    private boolean isActive;
-
+//    need?????????????
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
-    @JsonProperty("createdAt")
+    @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
-    @JsonProperty("updatedAt")
+    @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
     @JsonCreator
-    public Product(@JsonProperty("id") Long id,
-                   @JsonProperty("seller_id") Long sellerId,
+    public Product(
+                   @JsonProperty("seller_id") Long seller_id,
+                   @JsonProperty("product_id") Long product_id,
                    @JsonProperty("name") String name,
+                   @JsonProperty("sku") String sku,
+                   @JsonProperty("category") String category,
+                   @JsonProperty("description") String description,
                    @JsonProperty("price") Double price,
-                   @JsonProperty("is_active") boolean isActive) {
-        this.id = id;
-        this.sellerId = sellerId;
+                   @JsonProperty("freight_value") Double freight_value,
+                   @JsonProperty("status") String status,
+                   @JsonProperty("created_at") LocalDateTime createdAt,
+                   @JsonProperty("updated_at") LocalDateTime updatedAt,
+                   @JsonProperty("active") boolean isActive) {
+        this.product_id = product_id;
+        this.seller_id = seller_id;
         this.name = name;
+        this.sku = sku;
+        this.category = category;
+        this.description = description;
         this.price = price;
+        this.freight_value = freight_value;
+        this.status = status;
         this.isActive = isActive;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();

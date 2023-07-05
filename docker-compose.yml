@@ -6,12 +6,12 @@ services:
   #    Functions service
   ###############################################################
 
-  e-commerce-functions:
-    build:
-      dockerfile: Dockerfile
-      context: .
-    expose:
-      - "1108"
+#  e-commerce-functions:
+#    build:
+#      dockerfile: Dockerfile
+#      context: .
+#    expose:
+#      - "1108"
 
   ###############################################################
   #    StateFun runtime
@@ -51,11 +51,11 @@ services:
     depends_on:
       - master
       - kafka
-      - e-commerce-functions
+#      - e-commerce-functions
     links:
       - master:master
       - kafka:kafka
-      - e-commerce-functions:e-commerce-functions
+#      - e-commerce-functions:e-commerce-functions
     environment:
       ROLE: worker
       MASTER_HOST: master

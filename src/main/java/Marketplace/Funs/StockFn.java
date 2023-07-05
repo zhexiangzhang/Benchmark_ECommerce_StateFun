@@ -83,12 +83,13 @@ public class StockFn implements StatefulFunction {
 
     private void onIncreaseStock(Context context, Message message) {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
-        Long productId = increaseStock.getProductId();
-        int num = increaseStock.getNumber();
-        StockState stockState = getStockState(context);
-        stockState.increaseStock(productId, num);
-        context.storage().set(STOCKSTATE, stockState);
+        StockItem stockItem = increaseStock.getStockItem();
+        Long productId = stockItem.getProduct_id();
 
+//        int num = stockItem.getQty_available();
+        StockState stockState = getStockState(context);
+        String stockChange = stockState.increaseStock(productId, stockItem);
+        context.storage().set(STOCKSTATE, stockState);
 
         String log = String.format(getPartionText(context.self().id())
                         + "increaseStock success, "
@@ -96,8 +97,7 @@ public class StockFn implements StatefulFunction {
                 , productId);
         showLog(log);
 
-        String result = "IncreaseStock success, productId: " + productId + ", number: " + num
-                + ", after increase: " + stockState.getItem(productId).getQty_available();
+        String result = "IncreaseStock success, productId: " + productId + stockChange;
         System.out.println(result);
         sendMessageToCaller(context, Types.stringType(), result);
     }
@@ -106,8 +106,8 @@ public class StockFn implements StatefulFunction {
         StockState stockState = getStockState(context);
         AddProduct addProduct = message.as(AddProduct.TYPE);
         Product product = addProduct.getProduct();
-        Long productId = product.getId();
-        Long sellerId = product.getSellerId();
+        Long productId = product.getProduct_id();
+        Long sellerId = product.getSeller_id();
         LocalDateTime time = LocalDateTime.now();
         StockItem stockItem = new StockItem(
                 productId,
@@ -115,9 +115,8 @@ public class StockFn implements StatefulFunction {
                 0,
                 0,
                 0,
-                true,
-                time,
-                time);
+                0,
+                "");
         stockState.addItem(stockItem);
         context.storage().set(STOCKSTATE, stockState);
 

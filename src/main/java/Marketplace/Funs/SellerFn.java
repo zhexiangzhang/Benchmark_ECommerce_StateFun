@@ -2,6 +2,7 @@ package Marketplace.Funs;
 
 import Common.Entity.Product;
 import Common.Entity.Seller;
+import Common.Entity.StockItem;
 import Marketplace.Constant.Enums;
 import Marketplace.Constant.Enums.SendType;
 import Marketplace.Constant.Constants;
@@ -177,7 +178,8 @@ public class SellerFn implements StatefulFunction {
 
     private void onIncrStockAsyncBegin(Context context, Message message) {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
-        long productId = increaseStock.getProductId();
+        StockItem stockItem = increaseStock.getStockItem();
+        long productId = stockItem.getProduct_id();
         int prodFnPartitionID = (int) (productId % Constants.nProductPartitions);
 //        sendGetProdMsgToProdFn(context, increaseStock, prodFnPartitionID);
         sendMessage(context,
@@ -194,12 +196,12 @@ public class SellerFn implements StatefulFunction {
             String log = String.format(getPartionText(context.self().id())
                             + " increase stock fail as product not exist \n"
                             + "productId: %s\n"
-                    , increaseStockChkProd.getIncreaseStock().getProductId()
+                    , increaseStockChkProd.getIncreaseStock().getStockItem().getProduct_id()
             );
             showLog(log);
             return;
         }
-        long productId = product.getId();
+        long productId = product.getProduct_id();
         if(product.isActive()) {
             int stockFnPartitionID = (int) (productId % Constants.nStockPartitions);
 //            sendIncrStockMsgToStockFn(context, increaseStockChkProd.getIncreaseStock(), stockFnPartitionID);
@@ -231,7 +233,7 @@ public class SellerFn implements StatefulFunction {
 
     private void onAddProdAsyncBegin(Context context, Message message) {
         AddProduct addProduct = message.as(AddProduct.TYPE);
-        long productId = addProduct.getProduct().getId();
+        long productId = addProduct.getProduct().getProduct_id();
         String prodFnPartitionID = String.valueOf((int) (productId % Constants.nProductPartitions)) ;
         String stockFnPartitionID =String.valueOf((int) (productId % Constants.nStockPartitions));
         sendMessage(context, ProductFn.TYPE, prodFnPartitionID, AddProduct.TYPE, addProduct);

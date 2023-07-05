@@ -18,14 +18,15 @@ public class StockItem {
     @JsonProperty("qty_available") private int qty_available;
     @JsonProperty("qty_reserved") private int qty_reserved;
     @JsonProperty("order_count") private int order_count;
-//    @JsonProperty("ytd") private int ytd;
+    @JsonProperty("ytd") private int ytd;
+    @JsonProperty("data") private String data;
     @JsonProperty("is_active") private Boolean is_active;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonProperty("createdAt")
     private LocalDateTime createdAt;
-
+//    还有这些字段吗
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonProperty("updatedAt")
@@ -37,20 +38,18 @@ public class StockItem {
                      @JsonProperty("qty_available") int qty_available,
                      @JsonProperty("qty_reserved") int qty_reserved,
                      @JsonProperty("order_count") int order_count,
-//                     @JsonProperty("ytd") int ytd,
-                        @JsonProperty("is_active") Boolean is_active,
-                        @JsonProperty("createdAt") LocalDateTime createdAt,
-                        @JsonProperty("updatedAt") LocalDateTime updatedAt
-        ) {
+                     @JsonProperty("ytd") int ytd,
+                     @JsonProperty("data") String data) {
             this.product_id = product_id;
             this.seller_id = seller_id;
             this.qty_available = qty_available;
             this.qty_reserved = qty_reserved;
             this.order_count = order_count;
-//            this.ytd = ytd;
-            this.is_active = is_active;
-            this.createdAt = createdAt;
-            this.updatedAt = updatedAt;
+            this.ytd = ytd;
+            this.is_active = true;
+            this.data = data;
+            this.createdAt = LocalDateTime.now();
+            this.updatedAt = LocalDateTime.now();
     }
 
 //    public StockItem() {

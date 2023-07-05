@@ -8,13 +8,11 @@ import Marketplace.Types.MsgToProdFn.UpdateSinglePrice;
 import Marketplace.Types.MsgToSeller.*;
 import Marketplace.Types.MsgToProdFn.GetProduct;
 import Marketplace.Types.State.ProductState;
-import Marketplace.Types.State.SellerState;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -89,7 +87,7 @@ public class ProductFn implements StatefulFunction {
 
     private void onIncreaseStockAsyncCheck(Context context, Message message) {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
-        Long productId = increaseStock.getProductId();
+        Long productId = increaseStock.getStockItem().getProduct_id();
         ProductState productState = getProductState(context);
         Product product = productState.getProduct(productId);
         IncreaseStockChkProd increaseStockChkProd = new IncreaseStockChkProd(increaseStock, product);
@@ -140,7 +138,7 @@ public class ProductFn implements StatefulFunction {
 
         String log = getPartionText(context.self().id())
                 + " #sub-task# "
-                + "add product success, " + "product Id : " + product.getId() + "\n";
+                + "add product success, " + "product Id : " + product.getProduct_id() + "\n";
         showLog(log);
 
         sendTaskResToSeller(context, product, Enums.TaskType.AddProductType);
@@ -194,7 +192,7 @@ public class ProductFn implements StatefulFunction {
 
         String log = getPartionText(context.self().id())
                 + "update product success\n"
-                + "product Id : " + product.getId()
+                + "product Id : " + product.getProduct_id()
                 + " new price : " + product.getPrice()
                 + "\n";
         showLog(log);
@@ -217,7 +215,7 @@ public class ProductFn implements StatefulFunction {
     private void sendTaskResToSeller(Context context, Product product, Enums.TaskType taskType) {
         final Optional<Address> caller = context.caller();
         if (caller.isPresent()) {
-            TaskFinish taskFinish = new TaskFinish(taskType, Enums.SendType.ProductFn, product.getId());
+            TaskFinish taskFinish = new TaskFinish(taskType, Enums.SendType.ProductFn, product.getProduct_id());
             context.send(
                     MessageBuilder.forAddress(caller.get())
                             .withCustomType(TaskFinish.TYPE, taskFinish)
