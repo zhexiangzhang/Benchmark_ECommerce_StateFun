@@ -23,14 +23,22 @@ public class DeleteProduct {
                     mapper::writeValueAsBytes,
                     bytes -> mapper.readValue(bytes, DeleteProduct.class));
 
-    @JsonProperty("product_id")
+    @JsonProperty("productId")
     private long product_id;
+    @JsonProperty("sellerId")
+    private long seller_id;
+    @JsonProperty("instanceId")
+    private int instanceId;
 
     public DeleteProduct() {
     }
 
     @JsonCreator
-    public DeleteProduct(@JsonProperty("product_id") long product_id) {
-        this.product_id = product_id;
-    }
+    public DeleteProduct(@JsonProperty("productId") long product_id,
+                            @JsonProperty("sellerId") long seller_id,
+                            @JsonProperty("instanceId") int instanceId) {
+            this.product_id = product_id;
+            this.seller_id = seller_id;
+            this.instanceId = instanceId;
+        }
 }

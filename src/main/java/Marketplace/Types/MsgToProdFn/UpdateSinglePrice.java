@@ -1,7 +1,6 @@
 package Marketplace.Types.MsgToProdFn;
 
 import Marketplace.Constant.Constants;
-import Marketplace.Types.MsgToSeller.UpdatePrice;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,8 +9,6 @@ import lombok.Setter;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.types.SimpleType;
 import org.apache.flink.statefun.sdk.java.types.Type;
-
-import java.util.Map;
 
 @Setter
 @Getter
@@ -24,15 +21,23 @@ public class UpdateSinglePrice {
                     mapper::writeValueAsBytes,
                     bytes -> mapper.readValue(bytes, UpdateSinglePrice.class));
 
-    @JsonProperty("product_id")
-    private Long product_id;
+    @JsonProperty("sellerId")
+    private Long sellerId;
+    @JsonProperty("productId")
+    private Long productId;
     @JsonProperty("price")
     private Double price;
+    @JsonProperty("instanceId")
+    private int instanceId;
 
     @JsonCreator
-    public UpdateSinglePrice(@JsonProperty("product_id") Long product_id,
-                       @JsonProperty("price") Double price) {
-        this.product_id = product_id;
+    public UpdateSinglePrice(@JsonProperty("sellerId") Long sellerId,
+                             @JsonProperty("productId") Long productId,
+                             @JsonProperty("price") Double price,
+                             @JsonProperty("instanceId") int instanceId) {
+        this.sellerId = sellerId;
+        this.productId = productId;
         this.price = price;
+        this.instanceId = instanceId;
     }
 }

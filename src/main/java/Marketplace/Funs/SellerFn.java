@@ -58,13 +58,13 @@ public class SellerFn implements StatefulFunction {
                 onGetProdAsyncBegin(context);
             }
             // client ---> seller ( delete product)
-            else if (message.is(DeleteProduct.TYPE)) {
-                onDeleteProdAsyncBegin(context, message);
-            }
+//            else if (message.is(DeleteProduct.TYPE)) {
+//                onDeleteProdAsyncBegin(context, message);
+//            }
             // client ---> seller (update price)
-            else if (message.is(UpdatePrice.TYPE)) {
-                onUpdatePrice(context, message);
-            }
+//            else if (message.is(UpdatePrice.TYPE)) {
+//                onUpdatePrice(context, message);
+//            }
             // client ---> seller (increase stock)
             else if (message.is(IncreaseStock.TYPE)) {
                 onIncrStockAsyncBegin(context, message);
@@ -161,20 +161,20 @@ public class SellerFn implements StatefulFunction {
         showLog(log);
     }
 
-    private void onUpdatePrice(Context context, Message message) {
-        UpdatePrice updatePrice = message.as(UpdatePrice.TYPE);
+//    private void onUpdatePrice(Context context, Message message) {
+//        UpdatePrice updatePrice = message.as(UpdatePrice.TYPE);
 //        long productId = updatePrice.getProduct_id();
-        Map<Long, Double> productIdToPrice = updatePrice.getUpdateID2Price();
-        for (Map.Entry<Long, Double> entry : productIdToPrice.entrySet()) {
-            long productId = entry.getKey();
-            int prodFnPartitionID = (int) (productId % Constants.nProductPartitions);
-            sendMessage(context,
-                    ProductFn.TYPE,
-                    String.valueOf(prodFnPartitionID),
-                    UpdateSinglePrice.TYPE,
-                    new UpdateSinglePrice(productId, entry.getValue()));
-        }
-    }
+//        Map<Long, Double> productIdToPrice = updatePrice.getUpdateID2Price();
+//        for (Map.Entry<Long, Double> entry : productIdToPrice.entrySet()) {
+//            long productId = entry.getKey();
+//            int prodFnPartitionID = (int) (productId % Constants.nProductPartitions);
+//            sendMessage(context,
+//                    ProductFn.TYPE,
+//                    String.valueOf(prodFnPartitionID),
+//                    UpdateSinglePrice.TYPE,
+//                    new UpdateSinglePrice(productId, entry.getValue()));
+//        }
+//    }
 
     private void onIncrStockAsyncBegin(Context context, Message message) {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
@@ -221,15 +221,15 @@ public class SellerFn implements StatefulFunction {
         }
     }
 
-    private void onDeleteProdAsyncBegin(Context context, Message message) {
-        DeleteProduct deleteProduct = message.as(DeleteProduct.TYPE);
-        long productId = deleteProduct.getProduct_id();
-        String prodFnPartitionID = String.valueOf((int) (productId % Constants.nProductPartitions));
-        String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
-        sendMessage(context, ProductFn.TYPE, prodFnPartitionID, DeleteProduct.TYPE, deleteProduct);
-        sendMessage(context, StockFn.TYPE, stockFnPartitionID, DeleteProduct.TYPE, deleteProduct);
-        saveDeleteProdAsyncTask(context, productId);
-    }
+//    private void onDeleteProdAsyncBegin(Context context, Message message) {
+//        DeleteProduct deleteProduct = message.as(DeleteProduct.TYPE);
+//        long productId = deleteProduct.getProduct_id();
+//        String prodFnPartitionID = String.valueOf((int) (productId % Constants.nProductPartitions));
+//        String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
+//        sendMessage(context, ProductFn.TYPE, prodFnPartitionID, DeleteProduct.TYPE, deleteProduct);
+//        sendMessage(context, StockFn.TYPE, stockFnPartitionID, DeleteProduct.TYPE, deleteProduct);
+//        saveDeleteProdAsyncTask(context, productId);
+//    }
 
     private void onAddProdAsyncBegin(Context context, Message message) {
         AddProduct addProduct = message.as(AddProduct.TYPE);
@@ -237,7 +237,7 @@ public class SellerFn implements StatefulFunction {
         String prodFnPartitionID = String.valueOf((int) (productId % Constants.nProductPartitions)) ;
         String stockFnPartitionID =String.valueOf((int) (productId % Constants.nStockPartitions));
         sendMessage(context, ProductFn.TYPE, prodFnPartitionID, AddProduct.TYPE, addProduct);
-        sendMessage(context, StockFn.TYPE, stockFnPartitionID, AddProduct.TYPE, addProduct);
+//        sendMessage(context, StockFn.TYPE, stockFnPartitionID, AddProduct.TYPE, addProduct);
         // TODO: 6/4/2023  确认两个消息都发送成功了才算成功
         saveAddProdAsyncTask(context, productId);
     }
@@ -339,12 +339,12 @@ public class SellerFn implements StatefulFunction {
         context.storage().set(SELLERASYNCSTATE, sellerAsyncState);
     }
 
-    private void saveDeleteProdAsyncTask(Context context, long productId) {
-        SellerAsyncState sellerAsyncState = getSellerAsyncState(context);
-        Map<Long, SendType> deleteProdTaskList = sellerAsyncState.getDeleteProdTaskList();
-        deleteProdTaskList.put(productId, SendType.None);
-        context.storage().set(SELLERASYNCSTATE, sellerAsyncState);
-    }
+//    private void saveDeleteProdAsyncTask(Context context, long productId) {
+//        SellerAsyncState sellerAsyncState = getSellerAsyncState(context);
+//        Map<Long, SendType> deleteProdTaskList = sellerAsyncState.getDeleteProdTaskList();
+//        deleteProdTaskList.put(productId, SendType.None);
+//        context.storage().set(SELLERASYNCSTATE, sellerAsyncState);
+//    }
 }
 
 //# 关于异步的处理： 除了动态buffer，还可以为每一种异步请求新建一个handler，然后在seller这里产生唯一的id，然后在handler里面定义状态变量

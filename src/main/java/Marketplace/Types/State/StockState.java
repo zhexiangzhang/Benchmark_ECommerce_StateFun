@@ -12,7 +12,6 @@ import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.types.SimpleType;
 import org.apache.flink.statefun.sdk.java.types.Type;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 
 @Setter
@@ -44,24 +43,12 @@ public class StockState {
     }
 
     @JsonIgnore
-    public String increaseStock(Long product_id, StockItem newStockItem) {
-        // return the change in stock
-        StockItem oldStockItem = this.getItem(product_id);
-
-        int addAvailable = newStockItem.getQty_available();
-        int oldAvailable = oldStockItem.getQty_available();
-        int newAvailable = oldAvailable + addAvailable;
-
-        oldStockItem.setQty_available(newAvailable);
-        oldStockItem.setYtd(newStockItem.getYtd());
-        oldStockItem.setData(newStockItem.getData());
-        oldStockItem.setUpdatedAt(LocalDateTime.now());
-
-        return " oldAvailable number: " + oldAvailable + ", newAvailable number : " + newAvailable;
+    public void addStock(Long product_id, StockItem StockItem) {
+        stockItems.put(product_id, StockItem);
     }
 
-    @JsonIgnore
-    public void addItem(StockItem stockItem) {
-        stockItems.put(stockItem.getProduct_id(), stockItem);
-    }
+//    @JsonIgnore
+//    public void addItem(StockItem stockItem) {
+//        stockItems.put(stockItem.getProduct_id(), stockItem);
+//    }
 }

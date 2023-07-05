@@ -42,7 +42,6 @@ public class ProductFn implements StatefulFunction {
         return String.format("\n[ ProductFn partitionId %s ] ", id);
     }
 
-
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
         try{
@@ -61,11 +60,11 @@ public class ProductFn implements StatefulFunction {
             else if (message.is(AddProduct.TYPE)) {
                 onAddProduct(context, message);
             }
-            // seller --> product (delete product)
+            // driver --> product (delete product)
             else if (message.is(DeleteProduct.TYPE)) {
                 onDeleteProduct(context, message);
             }
-            // seller --> product (update price)
+            // driver --> product (update price)
             else if (message.is(UpdateSinglePrice.TYPE)) {
                 onUpdatePrice(context, message);
             }
@@ -169,18 +168,18 @@ public class ProductFn implements StatefulFunction {
                 + "\n";
         showLog(log);
 
-        sendTaskResToSeller(context, product, Enums.TaskType.DeleteProductType);
+//        sendTaskResToSeller(context, product, Enums.TaskType.DeleteProductType);
     }
 
     private void onUpdatePrice(Context context, Message message) {
         UpdateSinglePrice updatePrice = message.as(UpdateSinglePrice.TYPE);
-        Long productId = updatePrice.getProduct_id();
+        Long productId = updatePrice.getProductId();
 
         ProductState productState = getProductState(context);
         Product product = productState.getProduct(productId);
         if (product == null) {
             String log = getPartionText(context.self().id())
-                    + "update product failed as product not exist\n"
+                    + "update price failed as product not exist\n"
                     + "product Id : " + productId
                     + "\n";
             showLog(log);
@@ -197,7 +196,7 @@ public class ProductFn implements StatefulFunction {
                 + "\n";
         showLog(log);
 
-        sendTaskResToSeller(context, product, Enums.TaskType.UpdatePriceType);
+//        sendTaskResToSeller(context, product, Enums.TaskType.UpdatePriceType);
     }
 
     private void sendCheckResToSeller(Context context, IncreaseStockChkProd increaseStockChkProd) {

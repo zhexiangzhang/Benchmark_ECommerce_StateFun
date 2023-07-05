@@ -11,3 +11,18 @@ public class Constants {
     public static final int nPaymentPartitions = 10;
     public static final int nCustomerPartitions = 10;
 }
+
+
+//{
+//        "statefunNamespace": "/e-commerce.fns/",
+//        "statefunHttpContentType": "application/vnd.e-commerce.types/",
+//        "statefunPartitionConfig": {
+//        "stockPartion": 10,
+//        "productPartion": 10,
+//        "customerPartion": 10,
+//        "sellerPartion": 10,
+//        "shipmentPartion": 10,
+//        "orderPartion": 10,
+//        "paymentPartion": 10
+//        }
+//        }

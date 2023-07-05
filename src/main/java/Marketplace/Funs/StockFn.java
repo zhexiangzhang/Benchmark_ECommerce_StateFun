@@ -1,11 +1,9 @@
 package Marketplace.Funs;
 
 import Common.Entity.BasketItem;
-import Common.Entity.Product;
 import Common.Entity.StockItem;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
-import Marketplace.Types.MsgToSeller.AddProduct;
 import Marketplace.Types.MsgToSeller.DeleteProduct;
 import Marketplace.Types.MsgToSeller.IncreaseStock;
 import Marketplace.Types.MsgToSeller.TaskFinish;
@@ -16,7 +14,6 @@ import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
 import org.apache.flink.statefun.sdk.java.types.Type;
-import org.apache.flink.statefun.sdk.java.types.Types;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -46,13 +43,13 @@ public class StockFn implements StatefulFunction {
         try {
             // seller ---> stock (increase stock)
             if (message.is(IncreaseStock.TYPE)) {
-                onIncreaseStock(context, message);
+                addStockItem(context, message);
             }
             // seller ---> stock (add product)
-            else if (message.is(AddProduct.TYPE)) {
-                onAddItem(context, message);
-            }
-            // seller ---> stock (delete product)
+//            else if (message.is(AddProduct.TYPE)) {
+//                onAddItem(context, message);
+//            }
+            // driver ---> stock (delete product)
             else if (message.is(DeleteProduct.TYPE)) {
                 onDeleteItem(context, message);
             }
@@ -81,53 +78,51 @@ public class StockFn implements StatefulFunction {
         System.out.println(log);
     }
 
-    private void onIncreaseStock(Context context, Message message) {
+    private void addStockItem(Context context, Message message) {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
         StockItem stockItem = increaseStock.getStockItem();
         Long productId = stockItem.getProduct_id();
 
 //        int num = stockItem.getQty_available();
         StockState stockState = getStockState(context);
-        String stockChange = stockState.increaseStock(productId, stockItem);
+        stockState.addStock(productId, stockItem);
         context.storage().set(STOCKSTATE, stockState);
 
         String log = String.format(getPartionText(context.self().id())
-                        + "increaseStock success, "
+                        + "addStockItem success, "
                         + "productId: %s\n"
                 , productId);
         showLog(log);
 
-        String result = "IncreaseStock success, productId: " + productId + stockChange;
-        System.out.println(result);
-        sendMessageToCaller(context, Types.stringType(), result);
+//        sendMessageToCaller(context, Types.stringType(), result);
     }
 
-    private void onAddItem(Context context, Message message) {
-        StockState stockState = getStockState(context);
-        AddProduct addProduct = message.as(AddProduct.TYPE);
-        Product product = addProduct.getProduct();
-        Long productId = product.getProduct_id();
-        Long sellerId = product.getSeller_id();
-        LocalDateTime time = LocalDateTime.now();
-        StockItem stockItem = new StockItem(
-                productId,
-                sellerId,
-                0,
-                0,
-                0,
-                0,
-                "");
-        stockState.addItem(stockItem);
-        context.storage().set(STOCKSTATE, stockState);
-
-        String log = String.format(getPartionText(context.self().id())
-                        + " #sub-task#"
-                        + " addProduct success, productId: %s\n"
-                , productId);
-        showLog(log);
-
-        sendTaskResToSeller(context, productId, Enums.TaskType.AddProductType);
-    }
+//    private void onAddItem(Context context, Message message) {
+//        StockState stockState = getStockState(context);
+//        AddProduct addProduct = message.as(AddProduct.TYPE);
+//        Product product = addProduct.getProduct();
+//        Long productId = product.getProduct_id();
+//        Long sellerId = product.getSeller_id();
+//        LocalDateTime time = LocalDateTime.now();
+//        StockItem stockItem = new StockItem(
+//                productId,
+//                sellerId,
+//                0,
+//                0,
+//                0,
+//                0,
+//                "");
+//        stockState.addItem(stockItem);
+//        context.storage().set(STOCKSTATE, stockState);
+//
+//        String log = String.format(getPartionText(context.self().id())
+//                        + " #sub-task#"
+//                        + " addProduct success, productId: %s\n"
+//                , productId);
+//        showLog(log);
+//
+//        sendTaskResToSeller(context, productId, Enums.TaskType.AddProductType);
+//    }
 
     private void onDeleteItem(Context context, Message message) {
         StockState stockState = getStockState(context);
