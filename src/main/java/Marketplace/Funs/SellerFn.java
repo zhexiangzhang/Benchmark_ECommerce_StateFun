@@ -70,13 +70,13 @@ public class SellerFn implements StatefulFunction {
                 onIncrStockAsyncBegin(context, message);
             }
             // product ---> seller (get the product info to check if it is still active)
-            else if (message.is(IncreaseStockChkProd.TYPE)) {
-                onIncrStockAsyncChkProd(context, message);
-            }
+//            else if (message.is(IncreaseStockChkProd.TYPE)) {
+//                onIncrStockAsyncChkProd(context, message);
+//            }
             // client ---> seller ( add product)
-            else if (message.is(AddProduct.TYPE)) {
-                onAddProdAsyncBegin(context, message);
-            }
+//            else if (message.is(AddProduct.TYPE)) {
+//                onAddProdAsyncBegin(context, message);
+//            }
             // stock / product ---> seller (the result of async task)
             else if (message.is(TaskFinish.TYPE)) {
                 onAsyncTaskFinish(context, message);
@@ -102,6 +102,10 @@ public class SellerFn implements StatefulFunction {
     private void showLog(String log) {
         logger.info(log);
 //        System.out.println(log);
+    }
+
+    private void printLog(String log) {
+        System.out.println(log);
     }
 
     private SellerState getSellerState(Context context) {
@@ -146,7 +150,7 @@ public class SellerFn implements StatefulFunction {
 
         String log = String.format(getPartionText(context.self().id())
                         + "init seller success, sellerId: %s\n", seller.getId());
-        showLog(log);
+        printLog(log);
     }
 
     private void onGetSeller(Context context) {
@@ -188,38 +192,38 @@ public class SellerFn implements StatefulFunction {
                 IncreaseStock.TYPE,
                 increaseStock);
     }
-
-    private void onIncrStockAsyncChkProd(Context context, Message message) {
-        IncreaseStockChkProd increaseStockChkProd = message.as(IncreaseStockChkProd.TYPE);
-        Product product = increaseStockChkProd.getProduct();
-        if (product == null) {
-            String log = String.format(getPartionText(context.self().id())
-                            + " increase stock fail as product not exist \n"
-                            + "productId: %s\n"
-                    , increaseStockChkProd.getIncreaseStock().getStockItem().getProduct_id()
-            );
-            showLog(log);
-            return;
-        }
-        long productId = product.getProduct_id();
-        if(product.isActive()) {
-            int stockFnPartitionID = (int) (productId % Constants.nStockPartitions);
-//            sendIncrStockMsgToStockFn(context, increaseStockChkProd.getIncreaseStock(), stockFnPartitionID);
-            sendMessage(context,
-                    StockFn.TYPE,
-                    String.valueOf(stockFnPartitionID),
-                    IncreaseStock.TYPE,
-                    increaseStockChkProd.getIncreaseStock());
-
-        } else {
-            String log = String.format(getPartionText(context.self().id())
-                    + " increase stock fail as product is not active \n"
-                    + "productId: %s\n"
-                    , productId
-            ) ;
-            showLog(log);
-        }
-    }
+//
+//    private void onIncrStockAsyncChkProd(Context context, Message message) {
+//        IncreaseStockChkProd increaseStockChkProd = message.as(IncreaseStockChkProd.TYPE);
+//        Product product = increaseStockChkProd.getProduct();
+//        if (product == null) {
+//            String log = String.format(getPartionText(context.self().id())
+//                            + " increase stock fail as product not exist \n"
+//                            + "productId: %s\n"
+//                    , increaseStockChkProd.getIncreaseStock().getStockItem().getProduct_id()
+//            );
+//            showLog(log);
+//            return;
+//        }
+//        long productId = product.getProduct_id();
+//        if(product.isActive()) {
+//            int stockFnPartitionID = (int) (productId % Constants.nStockPartitions);
+////            sendIncrStockMsgToStockFn(context, increaseStockChkProd.getIncreaseStock(), stockFnPartitionID);
+//            sendMessage(context,
+//                    StockFn.TYPE,
+//                    String.valueOf(stockFnPartitionID),
+//                    IncreaseStock.TYPE,
+//                    increaseStockChkProd.getIncreaseStock());
+//
+//        } else {
+//            String log = String.format(getPartionText(context.self().id())
+//                    + " increase stock fail as product is not active \n"
+//                    + "productId: %s\n"
+//                    , productId
+//            ) ;
+//            showLog(log);
+//        }
+//    }
 
 //    private void onDeleteProdAsyncBegin(Context context, Message message) {
 //        DeleteProduct deleteProduct = message.as(DeleteProduct.TYPE);
@@ -231,35 +235,35 @@ public class SellerFn implements StatefulFunction {
 //        saveDeleteProdAsyncTask(context, productId);
 //    }
 
-    private void onAddProdAsyncBegin(Context context, Message message) {
-        AddProduct addProduct = message.as(AddProduct.TYPE);
-        long productId = addProduct.getProduct().getProduct_id();
-        String prodFnPartitionID = String.valueOf((int) (productId % Constants.nProductPartitions)) ;
-        String stockFnPartitionID =String.valueOf((int) (productId % Constants.nStockPartitions));
-        sendMessage(context, ProductFn.TYPE, prodFnPartitionID, AddProduct.TYPE, addProduct);
-//        sendMessage(context, StockFn.TYPE, stockFnPartitionID, AddProduct.TYPE, addProduct);
-        // TODO: 6/4/2023  确认两个消息都发送成功了才算成功
-        saveAddProdAsyncTask(context, productId);
-    }
+//    private void onAddProdAsyncBegin(Context context, Message message) {
+//        AddProduct addProduct = message.as(AddProduct.TYPE);
+//        long productId = addProduct.getProduct().getProduct_id();
+//        String prodFnPartitionID = String.valueOf((int) (productId % Constants.nProductPartitions)) ;
+//        String stockFnPartitionID =String.valueOf((int) (productId % Constants.nStockPartitions));
+//        sendMessage(context, ProductFn.TYPE, prodFnPartitionID, AddProduct.TYPE, addProduct);
+////        sendMessage(context, StockFn.TYPE, stockFnPartitionID, AddProduct.TYPE, addProduct);
+//        // TODO: 6/4/2023  确认两个消息都发送成功了才算成功
+//        saveAddProdAsyncTask(context, productId);
+//    }
 
     private void onAsyncTaskFinish(Context context, Message message) {
         TaskFinish taskFinish = message.as(TaskFinish.TYPE);
         Long taskId = taskFinish.getProductId();
         Enums.SendType sendType = taskFinish.getSenderType();
         switch (taskFinish.getTaskType()) {
-            case AddProductType:
-                caseAddProd(context, taskId, sendType);
-                break;
-            case UpdatePriceType:
-                caseUpdatePrice(context, taskId, sendType);
-                break;
+//            case AddProductType:
+//                caseAddProd(context, taskId, sendType);
+//                break;
+//            case UpdatePriceType:
+//                caseUpdatePrice(context, taskId, sendType);
+//                break;
             case GetAllProductsType:
                 Product[] products = taskFinish.getProductsOfSeller();
                 caseGetAllProducts(context, products);
                 break;
-            case DeleteProductType:
-                caseDeleteProd(context, taskId, sendType);
-                break;
+//            case DeleteProductType:
+//                caseDeleteProd(context, taskId, sendType);
+//                break;
             default:
                 // 默认操作
                 break;

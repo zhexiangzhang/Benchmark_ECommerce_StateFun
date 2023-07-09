@@ -16,10 +16,7 @@ import org.apache.flink.statefun.sdk.java.types.Type;
 import org.apache.flink.statefun.sdk.java.types.Types;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
@@ -85,9 +82,9 @@ public class ShipmentFn implements StatefulFunction {
         Invoice invoice = processShipment.getInvoice();
         CustomerCheckout customerCheckout = invoice.getCustomerCheckout();
 
-        String log = getPartionText(context.self().id()) + "ShipmentFn: onProcessShipment: " + processShipment.toString();
-        logger.info(log);
-
+//        String log = getPartionText(context.self().id()) + "ShipmentFn: onProcessShipment: " + processShipment.toString();
+//        logger.info(log);
+// 9263
         // The Java equivalent code
         List<OrderItem> invoiceItems = invoice.getItems();
         List<OrderItem> items = invoiceItems.stream()
@@ -103,9 +100,9 @@ public class ShipmentFn implements StatefulFunction {
                 invoice.getOrder().getId(),
                 Long.parseLong(invoice.getOrderPartitionID()),
                 customerCheckout.getCustomerId(),
-                customerCheckout.getName(),
+                customerCheckout.getCardHolderName(),
                 items.size(),
-                customerCheckout.getAddress(),
+                customerCheckout.getCity(),
                 customerCheckout.getZipCode(),
                 invoice.getOrder().getPurchaseTimestamp(),
                 Enums.PackageStatus.CREATED.toString()
@@ -130,6 +127,16 @@ public class ShipmentFn implements StatefulFunction {
         ShipmentState shipmentState = getShipmentState(context);
         shipmentState.addShipment(shipmentId, shipment);
         shipmentState.addPackage(shipmentId, packages);
+
+
+//       输出所有的packages
+//        Map<Long, List<PackageItem>> allPackages = shipmentState.getPackages();
+//        for (Map.Entry<Long, List<PackageItem>> entry : allPackages.entrySet()) {
+//            Long key = entry.getKey();
+//            List<PackageItem> value = entry.getValue();
+//            logger.warning(context.self().id() + "ShipmentFn: onProcessShipment: allPackages: " + key + " " + value.toString());
+//        }
+
         context.storage().set(SHIPMENT_STATE, shipmentState);
 
         /**
@@ -165,9 +172,9 @@ public class ShipmentFn implements StatefulFunction {
                 notifyCustomer
         );
 
-        String log_ = getPartionText(context.self().id())
-                + "order is shipped, send message to orderFn and customerFn\n";
-        showLog(log_);
+//        String log_ = getPartionText(context.self().id())
+//                + "order is shipped, send message to orderFn and customerFn\n";
+//        showLog(log_);
 
         // TODO: 6/12/2023 whether need to confirm ????
 
@@ -204,10 +211,15 @@ public class ShipmentFn implements StatefulFunction {
     // TODO: 6/30/2023 we only need update the oldest? or should we update by seller id
     // 每次更新整个shipment，shipment包含多个package
     private void onUpdateShipment(Context context, Message message) {
-        System.out.println(getPartionText(context.self().id()) + " onUpdateShipment\n");
+//        String log_0 = getPartionText(context.self().id()) + " UpdateShipment begin .....\n";
+//        showLog(log_0);
 
         ShipmentState shipmentState = getShipmentState(context);
         Map<Long, List<PackageItem>> packages = shipmentState.getPackages();
+
+
+        String log_2 = getPartionText(context.self().id()) + "UpdateShipment in, packages have : " + packages + "\n";
+        showLog(log_2);
 
         // contains the minimum shipment ID for each seller.
         // 对应 每个卖家（sellerId）对应的最小发货单号（shipmentId）
@@ -220,9 +232,11 @@ public class ShipmentFn implements StatefulFunction {
                 .filter(entry -> entry.getValue().isPresent())
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get().getShipmentId()));
 
-        String log = getPartionText(context.self().id())
-                + "Shipments to update: (sellerID-MinShipmentID) " + q.toString() + "\n";
-        System.out.println(log);
+        String log_1 = getPartionText(context.self().id())
+                + "UpdateShipment in, Shipments to update: (sellerID-MinShipmentID) " + q + "\n";
+        showLog(log_1);
+
+        logger.warning(packages.toString());
 
 //        List<CompletableFuture<Void>> futures = new ArrayList<>();
 
@@ -235,9 +249,9 @@ public class ShipmentFn implements StatefulFunction {
             updatePackageDelivery(packagesForSeller, context);
         }
 
-        String log_ = getPartionText(context.self().id())
-                + "Update Shipment finished\n";
-        showLog(log_);
+//        String log_ = getPartionText(context.self().id())
+//                + "Update Shipment finished\n";
+//        showLog(log_);
 
         context.storage().set(SHIPMENT_STATE, shipmentState);
 //        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
@@ -251,6 +265,9 @@ public class ShipmentFn implements StatefulFunction {
 //                                "Update Shipment finished"
 //                        )
 //                );
+        UpdateShipment updateShipment = message.as(UpdateShipment.TYPE);
+        // send ack to caller
+        sendMessageToCaller(context, UpdateShipment.TYPE, updateShipment);
     }
 
     private void updatePackageDelivery(List<PackageItem> packageToUpdate, Context context) {
@@ -266,10 +283,10 @@ public class ShipmentFn implements StatefulFunction {
                 .filter(p -> p.getPackageStatus() == Enums.PackageStatus.DELIVERED)
                 .count();
 
-        String log = getPartionText(context.self().id())
-                + " -- Count delivery for shipment id " + shipmentId
-                + ": " + countDelivered + " total of " + shipments.get(shipmentId).getPackageCnt() + "\n";
-        System.out.println(log);
+//        String log = getPartionText(context.self().id())
+//                + " -- Count delivery for shipment id " + shipmentId
+//                + ": " + countDelivered + " total of " + shipments.get(shipmentId).getPackageCnt() + "\n";
+//        System.out.println(log);
 
         LocalDateTime now = LocalDateTime.now();
         for (PackageItem p : packageToUpdate) {
@@ -310,9 +327,9 @@ public class ShipmentFn implements StatefulFunction {
             );
             shipment.setPackageStatus(Enums.ShipmentStatus.CONCLUDED.toString());
         }
-        String log_ = getPartionText(context.self().id())
-                + "updatePackageDelivery for packages: \n" + packages.toString() + "\n";
-        System.out.println(log_);
+//        String log_ = getPartionText(context.self().id())
+//                + "updatePackageDelivery for packages: \n" + packages.toString() + "\n";
+//        System.out.println(log_);
     }
 //    private CompletableFuture<Void> updatePackageDelivery(List<PackageItem> packages, Context context) {
 //        return CompletableFuture.runAsync(() -> {
@@ -342,5 +359,17 @@ public class ShipmentFn implements StatefulFunction {
                 .withCustomType(messageType, messageContent)
                 .build();
         context.send(msg);
+    }
+
+    private <T> void sendMessageToCaller(Context context, Type<T> messageType, T messageContent) {
+        final Optional<Address> caller = context.caller();
+        if (caller.isPresent()) {
+            context.send(
+                    MessageBuilder.forAddress(caller.get())
+                            .withCustomType(messageType, messageContent)
+                            .build());
+        } else {
+            throw new IllegalStateException("There should always be a caller");
+        }
     }
 }

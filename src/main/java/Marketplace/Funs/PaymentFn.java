@@ -145,7 +145,7 @@ public class PaymentFn implements StatefulFunction {
         PaymentState paymentState = getPaymentState(context);
         OrderPayment orderPayment = new OrderPayment(
                 uniqueOrderID,
-                customerCheckout.getName(),
+                customerCheckout.getCardHolderName(),
                 customerCheckout.getCardNumber(),
                 customerCheckout.getCardExpiration()
         );

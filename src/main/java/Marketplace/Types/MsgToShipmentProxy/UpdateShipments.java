@@ -1,6 +1,7 @@
-package Marketplace.Types.MsgToShipment;
+package Marketplace.Types.MsgToShipmentProxy;
 
 import Marketplace.Constant.Constants;
+import Marketplace.Types.MsgToShipment.UpdateShipment;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,22 +11,22 @@ import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.types.SimpleType;
 import org.apache.flink.statefun.sdk.java.types.Type;
 
-@Setter
 @Getter
-public class UpdateShipment {
+@Setter
+public class UpdateShipments {
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static final Type<UpdateShipment> TYPE =
+    public static final Type<UpdateShipments> TYPE =
             SimpleType.simpleImmutableTypeFrom(
-                    TypeName.typeNameOf(Constants.TYPES_NAMESPACE, "UpdateShipment"),
+                    TypeName.typeNameOf(Constants.TYPES_NAMESPACE, "UpdateShipments"),
                     mapper::writeValueAsBytes,
-                    bytes -> mapper.readValue(bytes, UpdateShipment.class));
+                    bytes -> mapper.readValue(bytes, UpdateShipments.class));
 
     @JsonProperty("tid")
     private int tid;
 
     @JsonCreator
-    public UpdateShipment(@JsonProperty("tid") int tid) {
+    public UpdateShipments(@JsonProperty("tid") int tid) {
         this.tid = tid;
     }
 }

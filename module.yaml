@@ -19,6 +19,8 @@ spec:
     transactionTimeout: 15min
   topics:
     - hello
+    - deleteProductTask
+    - updatePriceTask
 
 
 

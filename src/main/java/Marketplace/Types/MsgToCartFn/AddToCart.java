@@ -24,19 +24,37 @@ public class AddToCart {
                     mapper::writeValueAsBytes,
                     bytes -> mapper.readValue(bytes, AddToCart.class));
 
-    @JsonProperty("customerId")
-    private Long customerId;
+//    @JsonProperty("customerId")
+//    private Long customerId;
 
-    @JsonProperty("item")
-    private BasketItem item;
+    @JsonProperty("SellerId") private long sellerId;
+    @JsonProperty("ProductId") private long productId;
+
+    @JsonProperty("ProductName") private String productName;
+    @JsonProperty("UnitPrice") private double unitPrice;
+    @JsonProperty("FreightValue") private double freightValue; //运费
+
+    @JsonProperty("Quantity") private int quantity;
+    @JsonProperty("Vouchers") private double[] vouchers;
 
     public AddToCart() {
     }
 
     @JsonCreator
-    public AddToCart(@JsonProperty("customerId") Long customerId,
-                     @JsonProperty("item") BasketItem item) {
-        this.customerId = customerId;
-        this.item = item;
+    public AddToCart(@JsonProperty("SellerId") long sellerId,
+                      @JsonProperty("ProductId") long productId,
+                      @JsonProperty("ProductName") String productName,
+                      @JsonProperty("UnitPrice") double unitPrice,
+                      @JsonProperty("FreightValue") double freightValue,
+                      @JsonProperty("Quantity") int quantity,
+                      @JsonProperty("Vouchers") double[] vouchers) {
+        this.sellerId = sellerId;
+        this.productId = productId;
+        this.productName = productName;
+        this.unitPrice = unitPrice;
+        this.freightValue = freightValue;
+        this.quantity = quantity;
+        this.vouchers = vouchers;
     }
+
 }

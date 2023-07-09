@@ -58,6 +58,10 @@ public class CustomerFn implements StatefulFunction {
 //        System.out.println(log);
     }
 
+    private void printLog(String log) {
+        System.out.println(log);
+    }
+
     private CustomerState getCustomerState(Context context) {
         return context.storage().get(CUSTOMERSTATE).orElse(new CustomerState());
     }
@@ -71,10 +75,10 @@ public class CustomerFn implements StatefulFunction {
         context.storage().set(CUSTOMERSTATE, customerState);
 
         String log = String.format(getPartionText(context.self().id())
-                        + "init customer success\n"
+                        + "init customer success, "
                         + "customer ID: %s\n"
                 , customer.getCustomerId());
-        showLog(log);
+        printLog(log);
     }
 
     private void onGetCustomer(Context context, Message message) {

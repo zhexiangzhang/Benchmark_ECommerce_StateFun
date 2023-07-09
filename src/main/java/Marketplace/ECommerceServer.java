@@ -24,7 +24,7 @@ public final class ECommerceServer {
         functions.withStatefulFunction(CustomerFn.SPEC);
         functions.withStatefulFunction(PaymentFn.SPEC);
         functions.withStatefulFunction(ShipmentFn.SPEC);
-
+        functions.withStatefulFunction(ShipmentProxyFn.SPEC);
 
         final RequestReplyHandler handler = functions.requestReplyHandler();
         final Undertow httpServer =

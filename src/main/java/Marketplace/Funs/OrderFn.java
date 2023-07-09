@@ -187,19 +187,19 @@ public class OrderFn implements StatefulFunction {
             case AttemptReservationsType:
                 String log = getPartionText(context.self().id())
                         + " #sub-task#, attempt reservation response, customerId: " + customerId ;
-                showLogPrt(log);
+//                showLogPrt(log);
                 dealAttemptResponse(context, checkoutResv);
                 break;
             case ConfirmReservationsType:
                 String log2 = getPartionText(context.self().id())
                         + " #sub-task#, confirm reservation response, customerId: " + customerId ;
-                showLogPrt(log2);
+//                showLogPrt(log2);
                 dealConfirmResponse(context, customerId);
                 break;
             case CancelReservationsType:
                 String log3 = getPartionText(context.self().id())
                         + " #sub-task#, cancel reservation response, customerId: " + customerId ;
-                showLogPrt(log3);
+//                showLogPrt(log3);
                 dealCancelResponse(context, customerId);
                 break;
             default:

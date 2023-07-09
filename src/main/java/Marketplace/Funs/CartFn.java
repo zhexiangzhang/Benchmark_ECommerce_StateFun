@@ -65,9 +65,9 @@ public class CartFn implements StatefulFunction {
                 onGetCart(context);
             }
         } catch (Exception e) {
-            System.out.println("Exception in CartFn !!!!!!!!!!!!!!!!");
-            e.printStackTrace();
-
+//            System.out.println("Exception in CartFn !!!!!!!!!!!!!!!!");
+//            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
         return context.done();
@@ -90,7 +90,18 @@ public class CartFn implements StatefulFunction {
     private void onAddToCart(Context context, Message message) {
         CartState cartState = getCartState(context);
         AddToCart addToCart = message.as(AddToCart.TYPE);
-        BasketItem item = addToCart.getItem();
+
+        BasketItem item = new BasketItem(
+            addToCart.getSellerId(),
+            addToCart.getProductId(),
+            addToCart.getProductName(),
+            addToCart.getUnitPrice(),
+            addToCart.getFreightValue(),
+            addToCart.getQuantity(),
+                addToCart.getVouchers()
+        );
+
+//        BasketItem item = addToCart.getItem();
         cartState.addItem(item.getProductId(), item);
         context.storage().set(CARTSTATE, cartState);
 
@@ -121,7 +132,11 @@ public class CartFn implements StatefulFunction {
         }
         if(!cartId.equals(customerId)) {
             String log = getPartionText(context.self().id())
-                    + "checkout fail as customer id is not match\n";
+                    + "checkout fail as customer id is not match\n"
+                    + "cartId: " + cartId + "\n"
+                    + "customerId: " + customerId + "\n"
+                    + "instanceId: " + customerCheckout.getInstanceId() + "\n";
+
             showLog(log);
             return;
         }

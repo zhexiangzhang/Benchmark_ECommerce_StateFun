@@ -11,6 +11,7 @@ import Marketplace.Types.MsgToStock.CheckoutResv;
 import Marketplace.Types.MsgToStock.PaymentResv;
 import Marketplace.Types.State.StockState;
 import org.apache.flink.statefun.sdk.java.*;
+import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
 import org.apache.flink.statefun.sdk.java.types.Type;
@@ -38,6 +39,8 @@ public class StockFn implements StatefulFunction {
         return String.format("[ StockFn partitionId %s ] ", id);
     }
 
+    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
+
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
         try {
@@ -49,7 +52,7 @@ public class StockFn implements StatefulFunction {
 //            else if (message.is(AddProduct.TYPE)) {
 //                onAddItem(context, message);
 //            }
-            // driver ---> stock (delete product)
+            // product ---> stock (delete product)
             else if (message.is(DeleteProduct.TYPE)) {
                 onDeleteItem(context, message);
             }
@@ -62,8 +65,9 @@ public class StockFn implements StatefulFunction {
                 onHandlePaymentResv(context, message);
             }
         } catch (Exception e) {
-            System.out.println("StockFn apply error !!!!!!!!!!!!!!!");
-            e.printStackTrace();
+//            System.out.println("StockFn apply error !!!!!!!!!!!!!!!");
+//            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
         return context.done();
@@ -74,7 +78,11 @@ public class StockFn implements StatefulFunction {
     }
 
     private void showLog(String log) {
-//        logger.info(log);
+        logger.info(log);
+//        System.out.println(log);
+    }
+
+    private void printLog(String log) {
         System.out.println(log);
     }
 
@@ -92,7 +100,7 @@ public class StockFn implements StatefulFunction {
                         + "addStockItem success, "
                         + "productId: %s\n"
                 , productId);
-        showLog(log);
+        printLog(log);
 
 //        sendMessageToCaller(context, Types.stringType(), result);
     }
@@ -134,7 +142,7 @@ public class StockFn implements StatefulFunction {
                             + "deleteItem failed as product not exist\n"
                             + "productId: %s\n"
                     , productId);
-            showLog(log);
+            logger.warning(log);
             return;
         }
         stockItem.setUpdatedAt(LocalDateTime.now());
@@ -142,12 +150,18 @@ public class StockFn implements StatefulFunction {
         context.storage().set(STOCKSTATE, stockState);
 
         String log = String.format(getPartionText(context.self().id())
-                        + "deleteItem success\n"
+                        + "deleteItem success (stock part)\n"
                         + "productId: %s\n"
                 , productId);
         showLog(log);
 
-        sendTaskResToSeller(context, productId, Enums.TaskType.DeleteProductType);
+        context.send(
+                KafkaEgressMessage.forEgress(KFK_EGRESS)
+                        .withTopic("deleteProductTask")
+                        .withUtf8Key(context.self().id())
+                        .withUtf8Value("delete product done (ID: " + productId + ")")
+                        .build());
+//        sendTaskResToSeller(context, productId, Enums.TaskType.DeleteProductType);
     }
 
     private void onHandleCheckoutResv(Context context, Message message) {
@@ -304,6 +318,4 @@ public class StockFn implements StatefulFunction {
             throw new IllegalStateException("There should always be a caller.");
         }
     }
-
-
 }

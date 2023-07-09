@@ -9,8 +9,10 @@ import Marketplace.Types.MsgToSeller.*;
 import Marketplace.Types.MsgToProdFn.GetProduct;
 import Marketplace.Types.State.ProductState;
 import org.apache.flink.statefun.sdk.java.*;
+import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
+import org.apache.flink.statefun.sdk.java.types.Type;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -34,6 +36,7 @@ public class ProductFn implements StatefulFunction {
             .build();
 
     private static final TypeName ECOMMERCE_EGRESS = TypeName.typeNameOf(Constants.EGRESS_NAMESPACE, "egress");
+    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
 
     private String getPartionText(String id) {
         return String.format("[ ProductFn partitionId %s ] ", id);
@@ -46,10 +49,11 @@ public class ProductFn implements StatefulFunction {
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
         try{
             // seller --> product (increase stock)
-            if (message.is(IncreaseStock.TYPE)) {
-                onIncreaseStockAsyncCheck(context, message);
-                // client --> product (get product)
-            } else if (message.is(GetProduct.TYPE)) {
+//            if (message.is(IncreaseStock.TYPE)) {
+//                onIncreaseStockAsyncCheck(context, message);
+//                // client --> product (get product)
+//            }
+            if (message.is(GetProduct.TYPE)) {
                 onGetProduct(context, message);
             }
             // seller --> product (getAllProducts of seller)
@@ -76,7 +80,11 @@ public class ProductFn implements StatefulFunction {
     }
 
     private void showLog(String log) {
-//        logger.info(log);
+        logger.info(log);
+//        System.out.println(log);
+    }
+
+    private void printLog(String log) {
         System.out.println(log);
     }
 
@@ -84,14 +92,14 @@ public class ProductFn implements StatefulFunction {
         return context.storage().get(PRODUCTSTATE).orElse(new ProductState());
     }
 
-    private void onIncreaseStockAsyncCheck(Context context, Message message) {
-        IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
-        Long productId = increaseStock.getStockItem().getProduct_id();
-        ProductState productState = getProductState(context);
-        Product product = productState.getProduct(productId);
-        IncreaseStockChkProd increaseStockChkProd = new IncreaseStockChkProd(increaseStock, product);
-        sendCheckResToSeller(context, increaseStockChkProd);
-    }
+//    private void onIncreaseStockAsyncCheck(Context context, Message message) {
+//        IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
+//        Long productId = increaseStock.getStockItem().getProduct_id();
+//        ProductState productState = getProductState(context);
+//        Product product = productState.getProduct(productId);
+//        IncreaseStockChkProd increaseStockChkProd = new IncreaseStockChkProd(increaseStock, product);
+//        sendCheckResToSeller(context, increaseStockChkProd);
+//    }
 
     private void onGetAllProducts(Context context, Message message) {
         ProductState productState = getProductState(context);
@@ -136,11 +144,10 @@ public class ProductFn implements StatefulFunction {
         context.storage().set(PRODUCTSTATE, productState);
 
         String log = getPartionText(context.self().id())
-                + " #sub-task# "
+//                + " #sub-task# "
                 + "add product success, " + "product Id : " + product.getProduct_id() + "\n";
-        showLog(log);
-
-        sendTaskResToSeller(context, product, Enums.TaskType.AddProductType);
+        printLog(log);
+//        sendTaskResToSeller(context, product, Enums.TaskType.AddProductType);
     }
 
     private void onDeleteProduct(Context context, Message message) {
@@ -154,7 +161,8 @@ public class ProductFn implements StatefulFunction {
                     + "delete product failed as product not exist\n"
                     + "product Id : " + productId
                     + "\n";
-            showLog(log);
+//            showLog(log);
+            logger.warning(log);
             return;
         }
         product.setActive(false);
@@ -168,7 +176,8 @@ public class ProductFn implements StatefulFunction {
                 + "\n";
         showLog(log);
 
-//        sendTaskResToSeller(context, product, Enums.TaskType.DeleteProductType);
+        String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
+        sendMessage(context, StockFn.TYPE, stockFnPartitionID, DeleteProduct.TYPE, deleteProduct);
     }
 
     private void onUpdatePrice(Context context, Message message) {
@@ -182,7 +191,7 @@ public class ProductFn implements StatefulFunction {
                     + "update price failed as product not exist\n"
                     + "product Id : " + productId
                     + "\n";
-            showLog(log);
+            logger.warning(log);
             return;
         }
         product.setPrice(updatePrice.getPrice());
@@ -195,21 +204,26 @@ public class ProductFn implements StatefulFunction {
                 + " new price : " + product.getPrice()
                 + "\n";
         showLog(log);
-
+        context.send(
+                KafkaEgressMessage.forEgress(KFK_EGRESS)
+                        .withTopic("updatePriceTask")
+                        .withUtf8Key(context.self().id())
+                        .withUtf8Value("update product done (ID: " + productId + ")")
+                        .build());
 //        sendTaskResToSeller(context, product, Enums.TaskType.UpdatePriceType);
     }
 
-    private void sendCheckResToSeller(Context context, IncreaseStockChkProd increaseStockChkProd) {
-        final Optional<Address> caller = context.caller();
-        if (caller.isPresent()) {
-            context.send(
-                    MessageBuilder.forAddress(caller.get())
-                            .withCustomType(IncreaseStockChkProd.TYPE, increaseStockChkProd)
-                            .build());
-        } else {
-            throw new IllegalStateException("There should always be a caller.");
-        }
-    }
+//    private void sendCheckResToSeller(Context context, IncreaseStockChkProd increaseStockChkProd) {
+//        final Optional<Address> caller = context.caller();
+//        if (caller.isPresent()) {
+//            context.send(
+//                    MessageBuilder.forAddress(caller.get())
+//                            .withCustomType(IncreaseStockChkProd.TYPE, increaseStockChkProd)
+//                            .build());
+//        } else {
+//            throw new IllegalStateException("There should always be a caller.");
+//        }
+//    }
 
     private void sendTaskResToSeller(Context context, Product product, Enums.TaskType taskType) {
         final Optional<Address> caller = context.caller();
@@ -237,5 +251,12 @@ public class ProductFn implements StatefulFunction {
         } else {
             throw new IllegalStateException("There should always be a caller.");
         }
+    }
+
+    private <T> void sendMessage(Context context, TypeName addressType, String addressId, Type<T> messageType, T messageContent) {
+        Message msg = MessageBuilder.forAddress(addressType, addressId)
+                .withCustomType(messageType, messageContent)
+                .build();
+        context.send(msg);
     }
 }
