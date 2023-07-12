@@ -1,5 +1,6 @@
 package Marketplace.Funs;
 
+import Common.Entity.KafkaResponse;
 import Common.Entity.Product;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
@@ -8,6 +9,8 @@ import Marketplace.Types.MsgToProdFn.UpdateSinglePrice;
 import Marketplace.Types.MsgToSeller.*;
 import Marketplace.Types.MsgToProdFn.GetProduct;
 import Marketplace.Types.State.ProductState;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
@@ -174,7 +177,7 @@ public class ProductFn implements StatefulFunction {
                 + "delete product success\n"
                 + "product Id : " + productId
                 + "\n";
-        showLog(log);
+//        showLog(log);
 
         String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
         sendMessage(context, StockFn.TYPE, stockFnPartitionID, DeleteProduct.TYPE, deleteProduct);
@@ -186,30 +189,55 @@ public class ProductFn implements StatefulFunction {
 
         ProductState productState = getProductState(context);
         Product product = productState.getProduct(productId);
+
+        String result = "fail";
         if (product == null) {
             String log = getPartionText(context.self().id())
                     + "update price failed as product not exist\n"
                     + "product Id : " + productId
                     + "\n";
             logger.warning(log);
-            return;
-        }
-        product.setPrice(updatePrice.getPrice());
-        product.setUpdatedAt(LocalDateTime.now());
-        context.storage().set(PRODUCTSTATE, productState);
+        } else {
+            product.setPrice(updatePrice.getPrice());
+            product.setUpdatedAt(LocalDateTime.now());
+            result = "success";
+            context.storage().set(PRODUCTSTATE, productState);
 
-        String log = getPartionText(context.self().id())
-                + "update product success\n"
-                + "product Id : " + product.getProduct_id()
-                + " new price : " + product.getPrice()
-                + "\n";
-        showLog(log);
+            String log = getPartionText(context.self().id())
+                    + "update product success\n"
+                    + "product Id : " + product.getProduct_id()
+                    + " new price : " + product.getPrice()
+                    + "\n";
+            showLog(log);
+        }
+
+//        context.send(
+//                KafkaEgressMessage.forEgress(KFK_EGRESS)
+//                        .withTopic("updatePriceTask")
+//                        .withUtf8Key(context.self().id())
+//                        .withUtf8Value("update product done (ID: " + productId + ")")
+//                        .build());
+//        kafka 发送一个jason数据
+        int tid = updatePrice.getInstanceId();
+        long sellerId = updatePrice.getSellerId();
+        // sellerID转换成string
+        String response = "";
+        try {
+            KafkaResponse kafkaResponse = new KafkaResponse(productId, tid, String.valueOf(sellerId), result);
+            ObjectMapper mapper = new ObjectMapper();
+            response = mapper.writeValueAsString(kafkaResponse);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(getPartionText(context.self().id())+" send updatePrice response to kafka: " + response);
         context.send(
                 KafkaEgressMessage.forEgress(KFK_EGRESS)
                         .withTopic("updatePriceTask")
                         .withUtf8Key(context.self().id())
-                        .withUtf8Value("update product done (ID: " + productId + ")")
+                        .withUtf8Value(response)
                         .build());
+
 //        sendTaskResToSeller(context, product, Enums.TaskType.UpdatePriceType);
     }
 

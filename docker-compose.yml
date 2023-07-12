@@ -72,7 +72,7 @@ services:
     image: confluentinc/cp-zookeeper:5.4.3
     container_name: zookeeper
     expose:
-      - 2181
+      - 2181:2181
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000

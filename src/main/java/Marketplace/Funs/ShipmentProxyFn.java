@@ -1,6 +1,7 @@
 package Marketplace.Funs;
 
 import Common.Entity.BasketItem;
+import Common.Entity.KafkaResponse;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
 import Marketplace.Types.MsgToShipment.ProcessShipment;
@@ -10,7 +11,10 @@ import Marketplace.Types.MsgToStock.CheckoutResv;
 import Marketplace.Types.State.ProductState;
 import Marketplace.Types.State.ShipmentProxyState;
 import Marketplace.Types.State.ShipmentState;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
+import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
 import org.apache.flink.statefun.sdk.java.types.Type;
@@ -33,6 +37,8 @@ public class ShipmentProxyFn implements StatefulFunction {
             .withValueSpec(PROXYSTATE)
             .withSupplier(ShipmentProxyFn::new)
             .build();
+
+    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
 
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
@@ -81,10 +87,32 @@ public class ShipmentProxyFn implements StatefulFunction {
 
         shipmentProxyState.subTaskDone(tid);
 
+        logger.info("ShipmentProxyFn: Received ack from shipment, tid = " + tid + "remain task = " + shipmentProxyState.getTaskList().get(tid));
         if (shipmentProxyState.isTaskDone(tid)) {
             shipmentProxyState.removeTask(tid);
             logger.info("ShipmentProxyFn: All partitions acked, tid = " + tid);
+
+            String response = "";
+            try {
+                KafkaResponse kafkaResponse = new KafkaResponse(
+                        tid,
+                        tid,
+                        "0",
+                        "success");
+                ObjectMapper mapper = new ObjectMapper();
+                response = mapper.writeValueAsString(kafkaResponse);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+
+            context.send(
+                    KafkaEgressMessage.forEgress(KFK_EGRESS)
+                            .withTopic("updateDeliveryTask")
+                            .withUtf8Key(context.self().id())
+                            .withUtf8Value(response)
+                            .build());
         }
+        context.storage().set(PROXYSTATE, shipmentProxyState);
     }
 
     private <T> void sendMessage(Context context, TypeName addressType, String addressId, Type<T> messageType, T messageContent) {

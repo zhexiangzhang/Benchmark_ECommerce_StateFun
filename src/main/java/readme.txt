@@ -6,6 +6,23 @@ scp D:/Downloads/docker-compose.yml ucloud@130.225.38.155:/home/ucloud
 
 # docker exec -it kafka kafka-console-consumer --topic hello --from-beginning --bootstrap-server kafka:29092
 
+查看kafka所有topic
+    docker exec -it kafka /bin/bash
+    /usr/bin/kafka-topics --list --bootstrap-server kafka:29092
+删除topic
+    获取zookeeper的ip
+        docker inspect -f "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" zookeeper
+    删除 （在kafka命令行）
+        /usr/bin/kafka-topics --zookeeper <zookeeper IP>:2181 --delete --topic <topic name>
+/usr/bin/kafka-topics --zookeeper 172.18.0.2:2181 --delete --topic addItemToCartTask
+/usr/bin/kafka-topics --zookeeper 172.18.0.2:2181 --create --topic checkoutTask --partitions 1 --replication-factor 1
+添加权限
+    Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+    - deleteProductTask
+    - updatePriceTask
+    - addItemToCartTask
+    - checkoutTask
+    - updateDeliveryTask
 
 collect metrics
     useful link:
@@ -84,4 +101,7 @@ host B : Driver run on Ubuntu  (EG. ssh ucloud@ssh.cloud.sdu.dk -p 2447)
     git add .
     git commit -m "message"
     git push origin statefun (for driver)
-    git push origin master (for statefun)
+    git push origin main (for statefun)
+
+
+git commit -m "kafka added"

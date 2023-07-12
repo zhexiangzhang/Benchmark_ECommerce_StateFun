@@ -1,6 +1,7 @@
 package Marketplace.Funs;
 
 import Common.Entity.BasketItem;
+import Common.Entity.KafkaResponse;
 import Common.Entity.StockItem;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
@@ -10,6 +11,8 @@ import Marketplace.Types.MsgToSeller.TaskFinish;
 import Marketplace.Types.MsgToStock.CheckoutResv;
 import Marketplace.Types.MsgToStock.PaymentResv;
 import Marketplace.Types.State.StockState;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
@@ -137,29 +140,44 @@ public class StockFn implements StatefulFunction {
         DeleteProduct deleteProduct = message.as(DeleteProduct.TYPE);
         Long productId = deleteProduct.getProduct_id();
         StockItem stockItem = stockState.getItem(productId);
+        String result = "fail";
+
         if (stockItem == null) {
             String log = String.format(getPartionText(context.self().id())
                             + "deleteItem failed as product not exist\n"
                             + "productId: %s\n"
                     , productId);
             logger.warning(log);
-            return;
+        } else {
+            stockItem.setUpdatedAt(LocalDateTime.now());
+            stockItem.setIs_active(false);
+            result = "success";
+            context.storage().set(STOCKSTATE, stockState);
+
+            String log = String.format(getPartionText(context.self().id())
+                            + "deleteItem success (stock part)\n"
+                            + "productId: %s\n"
+                    , productId);
+            showLog(log);
         }
-        stockItem.setUpdatedAt(LocalDateTime.now());
-        stockItem.setIs_active(false);
-        context.storage().set(STOCKSTATE, stockState);
 
-        String log = String.format(getPartionText(context.self().id())
-                        + "deleteItem success (stock part)\n"
-                        + "productId: %s\n"
-                , productId);
-        showLog(log);
+        int tid = deleteProduct.getInstanceId();
+        long sellerId = deleteProduct.getSeller_id();
+        String response = "";
+        try {
+            KafkaResponse kafkaResponse = new KafkaResponse(productId, tid, String.valueOf(sellerId), result);
+            ObjectMapper mapper = new ObjectMapper();
+            response = mapper.writeValueAsString(kafkaResponse);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
 
+        System.out.println(getPartionText(context.self().id())+" send delete product response to kafka: " + response);
         context.send(
                 KafkaEgressMessage.forEgress(KFK_EGRESS)
                         .withTopic("deleteProductTask")
                         .withUtf8Key(context.self().id())
-                        .withUtf8Value("delete product done (ID: " + productId + ")")
+                        .withUtf8Value(response)
                         .build());
 //        sendTaskResToSeller(context, productId, Enums.TaskType.DeleteProductType);
     }
@@ -190,7 +208,6 @@ public class StockFn implements StatefulFunction {
             default:
                 break;
         }
-
 
         sendMessageToCaller(
                 context,

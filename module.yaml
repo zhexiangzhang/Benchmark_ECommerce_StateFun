@@ -21,10 +21,9 @@ spec:
     - hello
     - deleteProductTask
     - updatePriceTask
-
-
-
-
+#    - addItemToCartTask
+    - checkoutTask
+    - updateDeliveryTask
 # 函数的名称空间: 数在 StateFun 中唯一标识函数的字符串。它通常以命名空间前缀+函数名称的形式表示，例如 com.example/UserFn。
 #  functions :函数的选择器，指定哪些函数的消息将会被路由和处理。(应该要和名称空间一致)
 #  urlPathTemplate : 定义了消息转发的目标地址。

@@ -9,7 +9,7 @@ public class Constants {
     public static final int nOrderPartitions = 10;
     public static final int nStockPartitions = 10;
     public static final int nPaymentPartitions = 10;
-    public static final int nCustomerPartitions = 10;
+    public static final int nCustomerPartitions = 1000000;
 }
 
 

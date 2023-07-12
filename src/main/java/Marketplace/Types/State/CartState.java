@@ -37,6 +37,8 @@ public class CartState {
     public Status status;
     @JsonProperty("items")
     public Map<Long, BasketItem> items; //     private final Map<Long, BasketItem> items;
+    @JsonProperty("currentTransactionId")
+    public int currentTransactionId;
 
     public CartState() {
         this.status = Status.OPEN;
@@ -61,6 +63,7 @@ public class CartState {
     @JsonIgnore
     public void clear() {
         this.items.clear();
+        this.status = Status.OPEN;
     }
 
     @JsonIgnore
