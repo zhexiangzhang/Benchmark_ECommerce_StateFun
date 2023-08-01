@@ -18,13 +18,16 @@ import java.time.LocalDateTime;
 @ToString
 public class PackageItem {
     @JsonProperty("packageId") private long packageId;
+    @JsonProperty("orderId") private long orderId;
     @JsonProperty("shipmentId") private long shipmentId;
 
     // FK
     // product identification
     @JsonProperty("sellerId")  public long sellerId;
     @JsonProperty("productId") public long productId;
+    @JsonProperty("freightValue") public double freightValue;
     @JsonProperty("quantity") public int quantity;
+    @JsonProperty("productName") public String productName;
     @JsonProperty("packageStatus") public Enums.PackageStatus packageStatus;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
@@ -32,19 +35,32 @@ public class PackageItem {
     @JsonProperty("delivered_time")
     private LocalDateTime delivered_time;
 
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonProperty("shipping_date")
+    private LocalDateTime shipping_date;
+
     @JsonCreator
     public PackageItem(
-            @JsonProperty("packageId") int packageId,
             @JsonProperty("shipmentId") long shipmentId,
+            @JsonProperty("orderId") long orderId,
+            @JsonProperty("packageId") int packageId,
             @JsonProperty("sellerId") long sellerId,
             @JsonProperty("productId") long productId,
             @JsonProperty("quantity") int quantity,
+            @JsonProperty("freightValue") double freightValue,
+            @JsonProperty("productName") String productName,
+            @JsonProperty("shipping_date") LocalDateTime shipping_date,
             @JsonProperty("packageStatus") Enums.PackageStatus packageStatus) {
         this.packageId = packageId;
         this.shipmentId = shipmentId;
+        this.orderId = orderId;
         this.sellerId = sellerId;
         this.productId = productId;
         this.quantity = quantity;
+        this.freightValue = freightValue;
+        this.productName = productName;
+        this.shipping_date = shipping_date;
         this.packageStatus = packageStatus;
     }
 

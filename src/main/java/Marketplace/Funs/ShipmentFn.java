@@ -1,24 +1,20 @@
 package Marketplace.Funs;
 
 import Common.Entity.*;
-import Marketplace.Constant.Constants;
+import Common.Utils.Utils;
 import Marketplace.Constant.Enums;
-import Marketplace.Types.MsgToCustomer.NotifyCustomer;
-import Marketplace.Types.MsgToOrderFn.OrderStateUpdate;
+import Marketplace.Constant.Constants;
+import Marketplace.Types.State.ShipmentState;
+import org.apache.flink.statefun.sdk.java.*;
+import Marketplace.Types.MsgToOrderFn.ShipmentNotification;
+import Marketplace.Types.MsgToSeller.DeliveryNotification;
 import Marketplace.Types.MsgToShipment.GetPendingPackages;
 import Marketplace.Types.MsgToShipment.ProcessShipment;
 import Marketplace.Types.MsgToShipment.UpdateShipment;
-import Marketplace.Types.State.ShipmentState;
-import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
-import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
-import org.apache.flink.statefun.sdk.java.types.Type;
-import org.apache.flink.statefun.sdk.java.types.Types;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -81,10 +77,12 @@ public class ShipmentFn implements StatefulFunction {
         ProcessShipment processShipment = message.as(ProcessShipment.TYPE);
         Invoice invoice = processShipment.getInvoice();
         CustomerCheckout customerCheckout = invoice.getCustomerCheckout();
-
+        long customerId = customerCheckout.getCustomerId();
+        int transactionID = processShipment.getInstanceId();
+        LocalDateTime now = LocalDateTime.now();
 //        String log = getPartionText(context.self().id()) + "ShipmentFn: onProcessShipment: " + processShipment.toString();
 //        logger.info(log);
-// 9263
+
         // The Java equivalent code
         List<OrderItem> invoiceItems = invoice.getItems();
         List<OrderItem> items = invoiceItems.stream()
@@ -97,15 +95,20 @@ public class ShipmentFn implements StatefulFunction {
         long shipmentId = generateNextShipmentId(context);
         Shipment shipment = new Shipment(
                 shipmentId,
-                invoice.getOrder().getId(),
-                Long.parseLong(invoice.getOrderPartitionID()),
+                invoice.getOrderID(),
                 customerCheckout.getCustomerId(),
-                customerCheckout.getCardHolderName(),
                 items.size(),
-                customerCheckout.getCity(),
+                items.stream().mapToDouble(OrderItem::getFreightValue).sum(),
+                now,
+                Enums.ShipmentStatus.APPROVED,
+                customerCheckout.getFirstName(),
+                customerCheckout.getLastName(),
+                customerCheckout.getStreet(),
+                Long.parseLong(invoice.getOrderPartitionID()),
+
                 customerCheckout.getZipCode(),
-                invoice.getOrder().getPurchaseTimestamp(),
-                Enums.PackageStatus.CREATED.toString()
+                customerCheckout.getCity(),
+                customerCheckout.getState()
         );
 
         int packageId = 1;
@@ -113,11 +116,15 @@ public class ShipmentFn implements StatefulFunction {
         List<PackageItem> packages = new ArrayList<>();
         for (OrderItem orderItem : items) {
             PackageItem pkg = new PackageItem(
-                    packageId,
                     shipmentId,
+                    invoice.getOrderID(),
+                    packageId,
                     orderItem.getSellerId(),
                     orderItem.getProductId(),
                     orderItem.getQuantity(),
+                    orderItem.getFreightValue(),
+                    orderItem.getProductName(),
+                    now,
                     Enums.PackageStatus.SHIPPED
             );
             packages.add(pkg);
@@ -128,15 +135,6 @@ public class ShipmentFn implements StatefulFunction {
         shipmentState.addShipment(shipmentId, shipment);
         shipmentState.addPackage(shipmentId, packages);
 
-
-//       输出所有的packages
-//        Map<Long, List<PackageItem>> allPackages = shipmentState.getPackages();
-//        for (Map.Entry<Long, List<PackageItem>> entry : allPackages.entrySet()) {
-//            Long key = entry.getKey();
-//            List<PackageItem> value = entry.getValue();
-//            logger.warning(context.self().id() + "ShipmentFn: onProcessShipment: allPackages: " + key + " " + value.toString());
-//        }
-
         context.storage().set(SHIPMENT_STATE, shipmentState);
 
         /**
@@ -146,38 +144,47 @@ public class ShipmentFn implements StatefulFunction {
          */
 
         String orderPartition = invoice.getOrderPartitionID();
-        sendMessage(
+
+        Utils.sendMessage(
                 context,
                 OrderFn.TYPE,
                 String.valueOf(orderPartition),
-                OrderStateUpdate.TYPE,
-                new OrderStateUpdate(
-                        invoice.getOrder().getId(),
-                        Enums.OrderStatus.SHIPPED
+                ShipmentNotification.TYPE,
+                new ShipmentNotification(
+                        invoice.getOrderID(),
+                        invoice.getCustomerCheckout().getCustomerId(),
+                        Enums.ShipmentStatus.APPROVED,
+                        now
                 )
         );
 
-        // send message to customer
-        NotifyCustomer notifyCustomer = new NotifyCustomer(
-                customerCheckout.getCustomerId(),
-                invoice.getOrder(),
-                Enums.NotificationType.notify_shipment
-        );
-        notifyCustomer.setNumDeliveries(packages.size());
-        sendMessage(
-                context,
-                CustomerFn.TYPE,
-                String.valueOf(customerCheckout.getCustomerId() % Constants.nCustomerPartitions),
-                NotifyCustomer.TYPE,
-                notifyCustomer
-        );
+        List<OrderItem> orderItems = invoice.getItems();
+        List<Long> sellerIds = new ArrayList<>();
+        for (OrderItem orderItem : orderItems) {
+            if (!sellerIds.contains(orderItem.getSellerId())) {
+                sellerIds.add(orderItem.getSellerId());
+                Utils.sendMessage(
+                        context,
+                        SellerFn.TYPE,
+                        String.valueOf(orderItem.getSellerId()),
+                        ShipmentNotification.TYPE,
+                        new ShipmentNotification(
+                                invoice.getOrderID(),
+                                invoice.getCustomerCheckout().getCustomerId(),
+                                Enums.ShipmentStatus.APPROVED,
+                                now
+                        )
+                );
+            }
+        }
 
-//        String log_ = getPartionText(context.self().id())
-//                + "order is shipped, send message to orderFn and customerFn\n";
-//        showLog(log_);
-
-        // TODO: 6/12/2023 whether need to confirm ????
-
+        Utils.notifyTransactionComplete(context,
+                Enums.TransactionType.checkoutTask.toString(),
+                String.valueOf(customerId),
+                customerId,
+                transactionID,
+                String.valueOf(customerId),
+                "success");
     }
 
     private void onGetPendingPackages(Context context, Message message) {
@@ -211,42 +218,37 @@ public class ShipmentFn implements StatefulFunction {
     // TODO: 6/30/2023 we only need update the oldest? or should we update by seller id
     // 每次更新整个shipment，shipment包含多个package
     private void onUpdateShipment(Context context, Message message) {
-//        String log_0 = getPartionText(context.self().id()) + " UpdateShipment begin .....\n";
-//        showLog(log_0);
 
         ShipmentState shipmentState = getShipmentState(context);
         Map<Long, List<PackageItem>> packages = shipmentState.getPackages();
 
-
-        String log_2 = getPartionText(context.self().id()) + "UpdateShipment in, packages have : " + packages + "\n";
-        showLog(log_2);
+        String log = getPartionText(context.self().id()) + "UpdateShipment in, packages have : " + packages + "\n";
+        showLog(log);
 
         // contains the minimum shipment ID for each seller.
         // 对应 每个卖家（sellerId）对应的最小发货单号（shipmentId）
-        Map<Long, Long> q = packages.values().stream()
-                .flatMap(List::stream)
-                .filter(p -> p.getPackageStatus().equals(Enums.PackageStatus.SHIPPED))
-                .collect(Collectors.groupingBy(PackageItem::getSellerId,
-                        Collectors.minBy(Comparator.comparingLong(PackageItem::getShipmentId))))
-                .entrySet().stream()
-                .filter(entry -> entry.getValue().isPresent())
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get().getShipmentId()));
+        Map<Long, Long> q = shipmentState.GetOldestOpenShipmentPerSeller();
+//        Map<Long, Long> q = packages.values().stream()
+//                .flatMap(List::stream)
+//                .filter(p -> p.getPackageStatus().equals(Enums.PackageStatus.SHIPPED))
+//                .collect(Collectors.groupingBy(PackageItem::getSellerId,
+//                        Collectors.minBy(Comparator.comparingLong(PackageItem::getShipmentId))))
+//                .entrySet().stream()
+//                .filter(entry -> entry.getValue().isPresent())
+//                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get().getShipmentId()));
 
-        String log_1 = getPartionText(context.self().id())
-                + "UpdateShipment in, Shipments to update: (sellerID-MinShipmentID) " + q + "\n";
-        showLog(log_1);
-
-        logger.warning(packages.toString());
-
-//        List<CompletableFuture<Void>> futures = new ArrayList<>();
+//        String log_1 = getPartionText(context.self().id())
+//                + "UpdateShipment in, Shipments to update: (sellerID-MinShipmentID) " + q + "\n";
+//        showLog(log_1);
 
         for (Map.Entry<Long, Long> kv : q.entrySet()) {
             // 获取相应的包裹列表
-            List<PackageItem> packagesForSeller = packages.get(kv.getValue()).stream()
-                    .filter(p -> p.getSellerId() == kv.getKey() && p.getPackageStatus().equals(Enums.PackageStatus.SHIPPED))
-                    .collect(Collectors.toList());
+//            List<PackageItem> packagesForSeller = packages.get(kv.getValue()).stream()
+//                    .filter(p -> p.getSellerId() == kv.getKey() && p.getPackageStatus().equals(Enums.PackageStatus.SHIPPED))
+//                    .collect(Collectors.toList());
 //            futures.add(updatePackageDelivery(packagesForSeller, context));
-            updatePackageDelivery(packagesForSeller, context);
+            List<PackageItem> packagesForSeller = shipmentState.GetShippedPackagesByShipmentIDAndSeller(kv.getKey(), kv.getValue());
+            updatePackageDelivery(context, packagesForSeller, kv.getKey());
         }
 
 //        String log_ = getPartionText(context.self().id())
@@ -254,122 +256,103 @@ public class ShipmentFn implements StatefulFunction {
 //        showLog(log_);
 
         context.storage().set(SHIPMENT_STATE, shipmentState);
-//        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-//                .thenRun(() ->
-////                        System.out.println("Update Shipment finished");
-//                        sendMessage(
-//                                context,
-//                                TempUserLoginFn.TYPE,
-//                                String.valueOf(1),
-//                                Types.stringType(),
-//                                "Update Shipment finished"
-//                        )
-//                );
+
         UpdateShipment updateShipment = message.as(UpdateShipment.TYPE);
-        // send ack to caller
-        sendMessageToCaller(context, UpdateShipment.TYPE, updateShipment);
+        // send ack to caller (proxy)
+        Utils.sendMessageToCaller(context, UpdateShipment.TYPE, updateShipment);
     }
 
-    private void updatePackageDelivery(List<PackageItem> packageToUpdate, Context context) {
+    private void updatePackageDelivery(Context context, List<PackageItem> packageToUpdate, long sellerID) {
         ShipmentState shipmentState = getShipmentState(context);
         Map<Long, Shipment> shipments = shipmentState.getShipments();
         Map<Long, List<PackageItem>> packages = shipmentState.getPackages();
         long shipmentId = packageToUpdate.get(0).getShipmentId();
         long sellerId = packageToUpdate.get(0).getSellerId();
 
+        Shipment shipment = shipments.get(shipmentId);
+        LocalDateTime now = LocalDateTime.now();
+
+        if (shipment.getStatus() == Enums.ShipmentStatus.APPROVED) {
+            shipment.setStatus(Enums.ShipmentStatus.DELIVERY_IN_PROGRESS);
+            // 更新shipments
+            ShipmentNotification shipmentNotification = new ShipmentNotification(
+                    shipment.getOrderId(),
+                    shipment.getCustomerId(),
+                    shipment.getStatus(),
+                    now
+            );
+
+            Utils.sendMessage(
+                    context, OrderFn.TYPE, String.valueOf(shipment.getOrderPartition()),
+                    ShipmentNotification.TYPE, shipmentNotification
+            );
+
+            Utils.sendMessage(
+                    context, SellerFn.TYPE, String.valueOf(sellerID),
+                    ShipmentNotification.TYPE, shipmentNotification
+            );
+        }
+
         // aggregate operation
 //        计算指定发货单号下的已交付的包裹数量
-        int countDelivered = (int) packages.get(shipmentId).stream()
-                .filter(p -> p.getPackageStatus() == Enums.PackageStatus.DELIVERED)
-                .count();
+//        int countDelivered = (int) packages.get(shipmentId).stream()
+//                .filter(p -> p.getPackageStatus() == Enums.PackageStatus.DELIVERED)
+//                .count();
+//        //        计算指定发货单号下的已交付的包裹数量,因为可能某shipmentid下有别的seller没发货，对该seller来说有更小的shipmentid
+        int countDelivered = shipmentState.GetTotalDeliveredPackagesForShipment(shipmentId);
 
 //        String log = getPartionText(context.self().id())
 //                + " -- Count delivery for shipment id " + shipmentId
 //                + ": " + countDelivered + " total of " + shipments.get(shipmentId).getPackageCnt() + "\n";
 //        System.out.println(log);
 
-        LocalDateTime now = LocalDateTime.now();
         for (PackageItem p : packageToUpdate) {
             p.setPackageStatus(Enums.PackageStatus.DELIVERED);
             p.setDelivered_time(now);
-        }
 
-//      only single customer per shipment
-        long customerId = shipments.get(shipmentId).getCustomerId();
-        // send message to customer
-        NotifyCustomer notifyCustomer = new NotifyCustomer(
-                customerId,
-                null,
-                Enums.NotificationType.notfiy_delivered
-        );
-        notifyCustomer.setNumDeliveries(packageToUpdate.size());
-        sendMessage(
-                context,
-                CustomerFn.TYPE,
-                String.valueOf(customerId % Constants.nCustomerPartitions),
-                NotifyCustomer.TYPE,
-                notifyCustomer
-        );
-
-        Shipment shipment = shipments.get(shipmentId);
-        if (shipment.getPackageCnt() == countDelivered + packageToUpdate.size()) {
-            long orderPartition = shipment.getOrderPartition();
-            long orderId = shipment.getOrderId();
-            sendMessage(
-                    context,
-                    OrderFn.TYPE,
-                    String.valueOf(orderPartition),
-                    OrderStateUpdate.TYPE,
-                    new OrderStateUpdate(
-                            orderId,
-                            Enums.OrderStatus.DELIVERED
-                    )
+            DeliveryNotification deliveryNotification = new DeliveryNotification(
+                    shipment.getCustomerId(),
+                    p.getOrderId(),
+                    p.getPackageId(),
+                    p.getSellerId(),
+                    p.getProductId(),
+                    p.getProductName(),
+                    Enums.PackageStatus.DELIVERED,
+                    now
             );
-            shipment.setPackageStatus(Enums.ShipmentStatus.CONCLUDED.toString());
+
+            Utils.sendMessage(
+                    context, SellerFn.TYPE, String.valueOf(sellerID),
+                    DeliveryNotification.TYPE, deliveryNotification
+            );
+
+            // notify customer
+            Utils.sendMessage(
+                    context, CustomerFn.TYPE, String.valueOf(shipment.getCustomerId()),
+                    DeliveryNotification.TYPE, deliveryNotification
+            );
         }
-//        String log_ = getPartionText(context.self().id())
-//                + "updatePackageDelivery for packages: \n" + packages.toString() + "\n";
-//        System.out.println(log_);
-    }
-//    private CompletableFuture<Void> updatePackageDelivery(List<PackageItem> packages, Context context) {
-//        return CompletableFuture.runAsync(() -> {
-//            ShipmentState shipmentState = getShipmentState(context);
-//            Map<Long, Shipment> shipments = shipmentState.getShipments();
-//            Map<Long, List<PackageItem>> packagesMap = shipmentState.getPackages();
-//            long shipmentId = packages.get(0).getShipmentId();
-//            long customerId = shipments.get(shipmentId).getCustomerId();
-//            // send message to customer
-//            sendMessage(
-//                    context,
-//                    CustomerFn.TYPE,
-//                    String.valueOf(customerId),
-//                    NotifyCustomer.TYPE,
-//                    new NotifyCustomer(
-//                            customerId,
-//                            null,
-//                            Enums.NotificationType.notfiy_delivered
-//                    )
-//            );
-//            System.out.println("updatePackageDelivery for packages: " + packages.toString());
-//        });
-//    }
 
-    private <T> void sendMessage(Context context, TypeName addressType, String addressId, Type<T> messageType, T messageContent) {
-        Message msg = MessageBuilder.forAddress(addressType, addressId)
-                .withCustomType(messageType, messageContent)
-                .build();
-        context.send(msg);
-    }
+        if (shipment.getPackageCnt() == countDelivered + packageToUpdate.size()) {
+            shipment.setStatus(Enums.ShipmentStatus.CONCLUDED);
+            // save in onUpdateShipment function
 
-    private <T> void sendMessageToCaller(Context context, Type<T> messageType, T messageContent) {
-        final Optional<Address> caller = context.caller();
-        if (caller.isPresent()) {
-            context.send(
-                    MessageBuilder.forAddress(caller.get())
-                            .withCustomType(messageType, messageContent)
-                            .build());
-        } else {
-            throw new IllegalStateException("There should always be a caller");
+            ShipmentNotification shipmentNotification = new ShipmentNotification(
+                    shipment.getOrderId(),
+                    shipment.getCustomerId(),
+                    shipment.getStatus(),
+                    now
+            );
+
+            Utils.sendMessage(
+                    context, OrderFn.TYPE, String.valueOf(shipment.getOrderPartition()),
+                    ShipmentNotification.TYPE, shipmentNotification
+            );
+
+            Utils.sendMessage(
+                    context, SellerFn.TYPE, String.valueOf(sellerID),
+                    ShipmentNotification.TYPE, shipmentNotification
+            );
         }
     }
 }

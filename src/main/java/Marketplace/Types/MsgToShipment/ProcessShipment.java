@@ -2,7 +2,6 @@ package Marketplace.Types.MsgToShipment;
 
 import Common.Entity.Invoice;
 import Marketplace.Constant.Constants;
-import Marketplace.Types.MsgToStock.CheckoutResv;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,8 +25,13 @@ public class ProcessShipment {
     @JsonProperty("invoice")
     private Invoice invoice;
 
+    @JsonProperty("instanceId")
+    private int instanceId;
+
     @JsonCreator
-    public ProcessShipment(@JsonProperty("invoice") Invoice invoice) {
+    public ProcessShipment(@JsonProperty("invoice") Invoice invoice,
+                           @JsonProperty("instanceId") int instanceId) {
         this.invoice = invoice;
+        this.instanceId = instanceId;
     }
 }

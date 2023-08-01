@@ -14,7 +14,7 @@ public final class ECommerceServer {
         final StatefulFunctions functions = new StatefulFunctions();
         functions.withStatefulFunction(TempUserLoginFn.SPEC);
         functions.withStatefulFunction(TempGreetFn.SPEC);
-        functions.withStatefulFunction(TestFn.SPEC);
+//        functions.withStatefulFunction(TestFn.TYPE, TestFn::new)
 
         functions.withStatefulFunction(CartFn.SPEC);
         functions.withStatefulFunction(OrderFn.SPEC);

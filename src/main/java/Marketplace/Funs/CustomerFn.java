@@ -4,7 +4,9 @@ import Common.Entity.Customer;
 import Common.Entity.Order;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
+import Marketplace.Types.MsgToCartFn.Cleanup;
 import Marketplace.Types.MsgToCustomer.*;
+import Marketplace.Types.MsgToSeller.DeliveryNotification;
 import Marketplace.Types.State.CustomerState;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
@@ -45,6 +47,15 @@ public class CustomerFn implements StatefulFunction {
             // PaymentFn ---> customer (notify success payment type)
             else if (message.is(NotifyCustomer.TYPE)) {
                 onhandleNotifyCustomer(context, message);
+            }
+            else if (message.is(DeliveryNotification.TYPE)) {
+                onhandleDeliveryNotification(context, message);
+            }
+//            else if (message.is(Cleanup.TYPE)) {
+//                onCleanup(context);
+//            }
+            else {
+                System.out.println("do nothing");
             }
         } catch (Exception e) {
             System.out.println("Exception in CustomerFn !!!!!!!!!!!!!!!!");
@@ -117,13 +128,6 @@ public class CustomerFn implements StatefulFunction {
         String statisticInfo = "";
 
         switch (notificationType) {
-            case notify_shipment:
-                int numberDeliveries = notifyCustomer.getNumDeliveries();
-                customer.setPendingDeliveriesCount(customer.getPendingDeliveriesCount() + numberDeliveries);
-                notificationInfo = "[ notify shipment ] ";
-                statistic = customer.getPendingDeliveriesCount();
-                statisticInfo = "pending deliveries count :";
-                break;
             case notify_success_payment:
                 customer.setSuccessPaymentCount(customer.getSuccessPaymentCount() + 1);
                 notificationInfo = "[ notify success payment ] ";
@@ -131,19 +135,17 @@ public class CustomerFn implements StatefulFunction {
                 statisticInfo = "successful payment count : ";
                 break;
             // use in 2 case: fail order and fail payment
+            case notify_fail_checkout:
+                customer.setFailedPaymentCount(customer.getAbandonedCartCount() + 1);
+                notificationInfo = "[ notify failed checkout ] ";
+                statistic = customer.getAbandonedCartCount();
+                statisticInfo = "failed checkout count : ";
+                break;
             case notify_failed_payment:
                 customer.setFailedPaymentCount(customer.getFailedPaymentCount() + 1);
                 notificationInfo = "[ notify failed payment ] ";
                 statistic = customer.getFailedPaymentCount();
                 statisticInfo = "failed payment count : ";
-                break;
-            case notfiy_delivered:
-                int numberDeliveries_ = notifyCustomer.getNumDeliveries();
-                customer.setPendingDeliveriesCount(customer.getPendingDeliveriesCount() - numberDeliveries_);
-                customer.setDeliveryCount(customer.getDeliveryCount() + 1);
-                notificationInfo = " notify delivered ";
-                statistic = customer.getPendingDeliveriesCount();
-                statisticInfo = "pending deliveries count : ";
                 break;
         }
 
@@ -157,5 +159,13 @@ public class CustomerFn implements StatefulFunction {
             log += "order ID: " + order.toString() + "\n";
         }
         showLog(log);
+    }
+
+    private void onhandleDeliveryNotification(Context context, Message message) {
+        CustomerState customerState = getCustomerState(context);
+        DeliveryNotification deliveryNotification = message.as(DeliveryNotification.TYPE);
+        long customerId = deliveryNotification.getCustomerId();
+        Customer customer = customerState.getCustomerById(customerId);
+        customer.setDeliveryCount(customer.getDeliveryCount() + 1);
     }
 }

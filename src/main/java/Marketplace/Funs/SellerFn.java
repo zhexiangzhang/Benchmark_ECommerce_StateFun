@@ -1,26 +1,22 @@
 package Marketplace.Funs;
 
-import Common.Entity.Product;
-import Common.Entity.Seller;
-import Common.Entity.StockItem;
+import Common.Entity.*;
+import Common.Utils.Utils;
 import Marketplace.Constant.Enums;
-import Marketplace.Constant.Enums.SendType;
 import Marketplace.Constant.Constants;
-import Marketplace.Types.MsgToProdFn.*;
+import Marketplace.Types.MsgToOrderFn.PaymentNotification;
+import Marketplace.Types.MsgToOrderFn.ShipmentNotification;
+import Marketplace.Types.MsgToPaymentFn.InvoiceIssued;
 import Marketplace.Types.MsgToSeller.*;
-import Marketplace.Types.State.SellerAsyncState;
 import Marketplace.Types.State.SellerState;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
-import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
-import org.apache.flink.statefun.sdk.java.types.Type;
 import org.apache.flink.statefun.sdk.java.types.Types;
 
-import java.util.Arrays;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import static java.lang.Thread.sleep;
 
@@ -31,10 +27,9 @@ public class SellerFn implements StatefulFunction {
     static final TypeName TYPE = TypeName.typeNameOf(Constants.FUNS_NAMESPACE, "seller");
 
     static final ValueSpec<SellerState> SELLERSTATE = ValueSpec.named("sellerState").withCustomType(SellerState.TYPE);
-    static final ValueSpec<SellerAsyncState> SELLERASYNCSTATE = ValueSpec.named("sellerAsyncState").withCustomType(SellerAsyncState.TYPE);
     //  Contains all the information needed to create a function instance
     public static final StatefulFunctionSpec SPEC = StatefulFunctionSpec.builder(TYPE)
-            .withValueSpecs(SELLERSTATE, SELLERASYNCSTATE)
+            .withValueSpecs(SELLERSTATE)
             .withSupplier(SellerFn::new)
             .build();
 
@@ -53,33 +48,30 @@ public class SellerFn implements StatefulFunction {
             else if (message.is(GetSeller.TYPE)) {
                 onGetSeller(context);
             }
-            // client ---> seller (get all products of seller)
-            else if (message.is(GetProducts.TYPE)) {
-                onGetProdAsyncBegin(context);
+            // order ---> seller
+            else if (message.is(InvoiceIssued.TYPE)) {
+                ProcessNewInvoice(context, message);
             }
-            // client ---> seller ( delete product)
-//            else if (message.is(DeleteProduct.TYPE)) {
-//                onDeleteProdAsyncBegin(context, message);
-//            }
-            // client ---> seller (update price)
-//            else if (message.is(UpdatePrice.TYPE)) {
-//                onUpdatePrice(context, message);
-//            }
             // client ---> seller (increase stock)
             else if (message.is(IncreaseStock.TYPE)) {
                 onIncrStockAsyncBegin(context, message);
             }
-            // product ---> seller (get the product info to check if it is still active)
-//            else if (message.is(IncreaseStockChkProd.TYPE)) {
-//                onIncrStockAsyncChkProd(context, message);
-//            }
-            // client ---> seller ( add product)
-//            else if (message.is(AddProduct.TYPE)) {
-//                onAddProdAsyncBegin(context, message);
-//            }
             // stock / product ---> seller (the result of async task)
-            else if (message.is(TaskFinish.TYPE)) {
-                onAsyncTaskFinish(context, message);
+//            else if (message.is(TaskFinish.TYPE)) {
+//                onAsyncTaskFinish(context, message);
+//            }
+            // driver ----> query dashboard
+            else if (message.is(QueryDashboard.TYPE)) {
+                onQueryDashboard(context, message);
+            }
+            else if (message.is(PaymentNotification.TYPE)) {
+                UpdateOrderStatus(context, message);
+            }
+            else if (message.is(ShipmentNotification.TYPE)) {
+                ProcessShipmentNotification(context, message);
+            }
+            else if (message.is(DeliveryNotification.TYPE)) {
+                ProcessDeliveryNotification(context, message);
             }
             // xxxxx ---> seller
             else if (message.is(Types.stringType())) {
@@ -112,34 +104,6 @@ public class SellerFn implements StatefulFunction {
         return context.storage().get(SELLERSTATE).orElse(new SellerState());
     }
 
-    private SellerAsyncState getSellerAsyncState(Context context) {
-        return context.storage().get(SELLERASYNCSTATE).orElse(new SellerAsyncState());
-    }
-
-    private void onGetProdAsyncBegin(Context context) throws InterruptedException {
-        SellerState sellerState = getSellerState(context);
-        SellerAsyncState sellerAsyncState = getSellerAsyncState(context);
-//        给每个partition发送消息
-        // TODO: 6/21/2023 如果要求这里也向driver发送信息的话要注意，可能要把查询也加入unique id
-        if (sellerAsyncState.isQueryProdTaskInProcess()) {
-            String log = String.format(getPartionText(context.self().id())
-                            + "get products task is in process, please wait....\n"
-                    );
-            showLog(log);
-        }
-        else {
-            Long sellerId = sellerState.getSeller().getId();
-            for (int i = 0; i < Constants.nProductPartitions; i++) {
-                sendMessage(context,
-                        ProductFn.TYPE,
-                        String.valueOf(i),
-                        GetAllProducts.TYPE,
-                        new GetAllProducts(sellerId));
-            }
-            sellerAsyncState.setQueryProdTaskInProcess(true);
-        }
-    }
-
     private void onInitSeller(Context context, Message message) {
         InitSeller initSeller = message.as(InitSeller.TYPE);
         Seller seller = initSeller.getSeller();
@@ -149,7 +113,7 @@ public class SellerFn implements StatefulFunction {
         context.storage().set(SELLERSTATE, sellerState);
 
         String log = String.format(getPartionText(context.self().id())
-                        + "init seller success, sellerId: %s\n", seller.getId());
+                + "init seller success, sellerId: %s\n", seller.getId());
         printLog(log);
     }
 
@@ -158,27 +122,12 @@ public class SellerFn implements StatefulFunction {
         Seller seller = sellerState.getSeller();
 
         String log = String.format(getPartionText(context.self().id())
-                        + "get seller success\n"
-                        + seller.toString()
-                        + "\n"
-                );
+                + "get seller success\n"
+                + seller.toString()
+                + "\n"
+        );
         showLog(log);
     }
-
-//    private void onUpdatePrice(Context context, Message message) {
-//        UpdatePrice updatePrice = message.as(UpdatePrice.TYPE);
-//        long productId = updatePrice.getProduct_id();
-//        Map<Long, Double> productIdToPrice = updatePrice.getUpdateID2Price();
-//        for (Map.Entry<Long, Double> entry : productIdToPrice.entrySet()) {
-//            long productId = entry.getKey();
-//            int prodFnPartitionID = (int) (productId % Constants.nProductPartitions);
-//            sendMessage(context,
-//                    ProductFn.TYPE,
-//                    String.valueOf(prodFnPartitionID),
-//                    UpdateSinglePrice.TYPE,
-//                    new UpdateSinglePrice(productId, entry.getValue()));
-//        }
-//    }
 
     private void onIncrStockAsyncBegin(Context context, Message message) {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
@@ -186,169 +135,166 @@ public class SellerFn implements StatefulFunction {
         long productId = stockItem.getProduct_id();
         int prodFnPartitionID = (int) (productId % Constants.nProductPartitions);
 //        sendGetProdMsgToProdFn(context, increaseStock, prodFnPartitionID);
-        sendMessage(context,
+        Utils.sendMessage(context,
                 ProductFn.TYPE,
                 String.valueOf(prodFnPartitionID),
                 IncreaseStock.TYPE,
                 increaseStock);
     }
-//
-//    private void onIncrStockAsyncChkProd(Context context, Message message) {
-//        IncreaseStockChkProd increaseStockChkProd = message.as(IncreaseStockChkProd.TYPE);
-//        Product product = increaseStockChkProd.getProduct();
-//        if (product == null) {
-//            String log = String.format(getPartionText(context.self().id())
-//                            + " increase stock fail as product not exist \n"
-//                            + "productId: %s\n"
-//                    , increaseStockChkProd.getIncreaseStock().getStockItem().getProduct_id()
-//            );
-//            showLog(log);
-//            return;
-//        }
-//        long productId = product.getProduct_id();
-//        if(product.isActive()) {
-//            int stockFnPartitionID = (int) (productId % Constants.nStockPartitions);
-////            sendIncrStockMsgToStockFn(context, increaseStockChkProd.getIncreaseStock(), stockFnPartitionID);
-//            sendMessage(context,
-//                    StockFn.TYPE,
-//                    String.valueOf(stockFnPartitionID),
-//                    IncreaseStock.TYPE,
-//                    increaseStockChkProd.getIncreaseStock());
-//
-//        } else {
-//            String log = String.format(getPartionText(context.self().id())
-//                    + " increase stock fail as product is not active \n"
-//                    + "productId: %s\n"
-//                    , productId
-//            ) ;
-//            showLog(log);
-//        }
-//    }
 
-//    private void onDeleteProdAsyncBegin(Context context, Message message) {
-//        DeleteProduct deleteProduct = message.as(DeleteProduct.TYPE);
-//        long productId = deleteProduct.getProduct_id();
-//        String prodFnPartitionID = String.valueOf((int) (productId % Constants.nProductPartitions));
-//        String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
-//        sendMessage(context, ProductFn.TYPE, prodFnPartitionID, DeleteProduct.TYPE, deleteProduct);
-//        sendMessage(context, StockFn.TYPE, stockFnPartitionID, DeleteProduct.TYPE, deleteProduct);
-//        saveDeleteProdAsyncTask(context, productId);
-//    }
+    private void ProcessNewInvoice(Context context, Message message) {
 
-//    private void onAddProdAsyncBegin(Context context, Message message) {
-//        AddProduct addProduct = message.as(AddProduct.TYPE);
-//        long productId = addProduct.getProduct().getProduct_id();
-//        String prodFnPartitionID = String.valueOf((int) (productId % Constants.nProductPartitions)) ;
-//        String stockFnPartitionID =String.valueOf((int) (productId % Constants.nStockPartitions));
-//        sendMessage(context, ProductFn.TYPE, prodFnPartitionID, AddProduct.TYPE, addProduct);
-////        sendMessage(context, StockFn.TYPE, stockFnPartitionID, AddProduct.TYPE, addProduct);
-//        // TODO: 6/4/2023  确认两个消息都发送成功了才算成功
-//        saveAddProdAsyncTask(context, productId);
-//    }
+        SellerState sellerState = getSellerState(context);
+        InvoiceIssued invoiceIssued = message.as(InvoiceIssued.TYPE);
 
-    private void onAsyncTaskFinish(Context context, Message message) {
-        TaskFinish taskFinish = message.as(TaskFinish.TYPE);
-        Long taskId = taskFinish.getProductId();
-        Enums.SendType sendType = taskFinish.getSenderType();
-        switch (taskFinish.getTaskType()) {
-//            case AddProductType:
-//                caseAddProd(context, taskId, sendType);
-//                break;
-//            case UpdatePriceType:
-//                caseUpdatePrice(context, taskId, sendType);
-//                break;
-            case GetAllProductsType:
-                Product[] products = taskFinish.getProductsOfSeller();
-                caseGetAllProducts(context, products);
-                break;
-//            case DeleteProductType:
-//                caseDeleteProd(context, taskId, sendType);
-//                break;
-            default:
-                // 默认操作
-                break;
-        }
+        Invoice invoice = invoiceIssued.getInvoice();
+        List<OrderItem> orderItems = invoice.getItems();
+        long sellerId = sellerState.getSeller().getId();
+        long orderId = invoice.getOrderID();
 
-    }
-
-    private void caseAddProd(Context context, Long productId, Enums.SendType sendType) {
-        SellerAsyncState sellerAsyncState = getSellerAsyncState(context);
-        if (sellerAsyncState.checkAddProdTask(productId, sendType)) {
-
-            String log = String.format(getPartionText(context.self().id())
-                            + "add product success, productId: %s\n", productId);
-            showLog(log);
-        }
-        context.storage().set(SELLERASYNCSTATE, sellerAsyncState);
-    }
-
-    private void caseDeleteProd(Context context, Long productId, Enums.SendType sendType) {
-        SellerAsyncState sellerAsyncState = getSellerAsyncState(context);
-        if (sellerAsyncState.checkDeleteProdTask(productId, sendType)) {
-            String log = String.format(getPartionText(context.self().id())
-                            + "delete product success\n"
-                            + "productId: %s\n"
-                    , productId
+        for (OrderItem orderItem : orderItems) {
+            OrderEntry orderEntry = new OrderEntry(
+                    orderId,
+                    sellerId,
+                    // packageI =
+                    orderItem.getProductId(),
+                    orderItem.getProductName(),
+                    orderItem.getQuantity(),
+                    orderItem.getTotalAmount(),
+                    orderItem.getTotalPrice(),
+                    // total_invoice =
+                    // total_incentive =
+                    orderItem.getFreightValue(),
+                    // shipment_date
+                    // delivery_date
+                    orderItem.getUnitPrice(),
+                    Enums.OrderStatus.INVOICED
+                    // product_category = ? should come from product
             );
-            showLog(log);
+            sellerState.addOrderEntry(orderEntry);
         }
-        context.storage().set(SELLERASYNCSTATE, sellerAsyncState);
-    }
 
-    private void caseUpdatePrice(Context context, Long productId, Enums.SendType sendType) {
-        // TODO: 7/2/2023 注意这里不能直接返回给kafka，如果需要的话，因为这个事来一个消息就输出一个，应该汇聚
-        String log = String.format(getPartionText(context.self().id())
-                        + "update price success, "
-                        + "productId: %s\n"
-                , productId
-        );
-        showLog(log);
-    }
-
-    private void caseGetAllProducts(Context context, Product[] products) {
-//        System.out.println("receive products: " + Arrays.toString(products));
-        SellerAsyncState sellerAsyncState = getSellerAsyncState(context);
-        int queryProdTaskCnt = sellerAsyncState.getQueryProdTaskCnt();
-        sellerAsyncState.setQueryProdTaskCnt(queryProdTaskCnt + 1);
-        String log = String.format(getPartionText(context.self().id())
-                        + "get products:\n%s\n"
-                , Arrays.stream(products).map(Product::toString).collect(Collectors.joining("\n"))
-        );
-        showLog(log);
-
-//        System.out.println("sellerAsyncState.getQueryProdTaskCnt(): " + sellerAsyncState.getQueryProdTaskCnt());
-        if (sellerAsyncState.checkQueryProdTask()) {
-//            每个product用回车分隔
-            String log_ = String.format(getPartionText(context.self().id())
-                            + "get all products success (done)\n"
+        // order details
+        OrderEntryDetails orderEntryDetail = new OrderEntryDetails(
+                orderId,
+                invoice.getIssueDate(),
+                Enums.OrderStatus.INVOICED,
+                invoice.getCustomerCheckout().getCustomerId(),
+                invoice.getCustomerCheckout().getFirstName(),
+                invoice.getCustomerCheckout().getLastName(),
+                invoice.getCustomerCheckout().getStreet(),
+                invoice.getCustomerCheckout().getComplement(),
+                invoice.getCustomerCheckout().getCity(),
+                invoice.getCustomerCheckout().getState(),
+                invoice.getCustomerCheckout().getZipCode(),
+                invoice.getCustomerCheckout().getCardBrand(),
+                invoice.getCustomerCheckout().getInstallments()
             );
-            showLog(log_);
-            sellerAsyncState.setQueryProdTaskInProcess(false);
-            sellerAsyncState.setQueryProdTaskCnt(0);
+        sellerState.addOrderEntryDetails(orderId, orderEntryDetail);
+
+        context.storage().set(SELLERSTATE, sellerState);
+    }
+
+    private void onQueryDashboard(Context context, Message message) {
+        SellerState sellerState = getSellerState(context);
+
+        Set<OrderEntry> orderEntries = sellerState.getOrderEntries();
+        Map<Long, OrderEntryDetails> orderEntryDetails = sellerState.getOrderEntryDetails();
+
+        long sellerID = sellerState.getSeller().getId();
+        int tid = message.as(QueryDashboard.TYPE).getTid();
+
+        // count_items, total_amount, total_freight, total_incentive, total_invoice, total_items
+        OrderSellerView orderSellerView = new OrderSellerView(
+                sellerID,
+                orderEntries.size(),
+                orderEntries.stream().mapToDouble(OrderEntry::getTotalAmount).sum(),
+                orderEntries.stream().mapToDouble(OrderEntry::getFreight_value).sum(),
+                orderEntries.stream().mapToDouble(OrderEntry::getTotalIncentive).sum(),
+                orderEntries.stream().mapToDouble(OrderEntry::getTotalInvoice).sum(),
+                orderEntries.stream().mapToDouble(OrderEntry::getTotalItems).sum()
+        );
+
+        Set<OrderEntry> queryEnTry = new HashSet<>();
+        // 1.只保留order_status == OrderStatus.INVOICED || oe.order_status == OrderStatus.READY_FOR_SHIPMENT ||
+        //                                                               oe.order_status == OrderStatus.IN_TRANSIT || oe.order_status == OrderStatus.PAYMENT_PROCESSED)
+        // 2.将OrderEntryDetails加入到OrderEntry中
+        for (OrderEntry oe : orderEntries) {
+            Enums.OrderStatus orderStatus = oe.getOrder_status();
+            if (orderStatus == Enums.OrderStatus.INVOICED ||
+                    orderStatus == Enums.OrderStatus.READY_FOR_SHIPMENT ||
+                    orderStatus == Enums.OrderStatus.IN_TRANSIT ||
+                    orderStatus == Enums.OrderStatus.PAYMENT_PROCESSED) {
+               // 将对应的OrderEntryDetails加入到OrderEntry中
+                oe.setOrderEntryDetails(orderEntryDetails.get(oe.getOrder_id()));
+                queryEnTry.add(oe);
+            }
         }
-        context.storage().set(SELLERASYNCSTATE, sellerAsyncState);
+
+        SellerDashboard sellerDashboard = new SellerDashboard(
+                orderSellerView,
+                queryEnTry
+        );
+
+        Utils.notifyTransactionComplete(
+                context,
+                Enums.TransactionType.queryDashboardTask.toString(),
+                context.self().id(),
+                sellerID, tid, context.self().id(), "success");
     }
 
-    private <T> void sendMessage(Context context, TypeName addressType, String addressId, Type<T> messageType, T messageContent) {
-        Message msg = MessageBuilder.forAddress(addressType, addressId)
-                .withCustomType(messageType, messageContent)
-                .build();
-        context.send(msg);
+    private void UpdateOrderStatus(Context context, Message message) {
+        SellerState sellerState = getSellerState(context);
+        PaymentNotification orderStateUpdate = message.as(PaymentNotification.TYPE);
+
+        long orderId = orderStateUpdate.getOrderId();
+//        if (orderId != sellerState.getSeller().getId()) {
+//            throw new RuntimeException("sellerId != orderId");
+//        }
+
+        Enums.OrderStatus orderStatus = orderStateUpdate.getOrderStatus();
+        sellerState.updateOrderStatus(orderId, orderStatus, null);
+
+        context.storage().set(SELLERSTATE, sellerState);
     }
 
-    private void saveAddProdAsyncTask(Context context, long productId) {
-        SellerAsyncState sellerAsyncState = getSellerAsyncState(context);
-        Map<Long, SendType> addProdTaskList = sellerAsyncState.getAddProdTaskList();
-        addProdTaskList.put(productId, SendType.None);
-        context.storage().set(SELLERASYNCSTATE, sellerAsyncState);
+    private void ProcessShipmentNotification(Context context, Message message) {
+        SellerState sellerState = getSellerState(context);
+        ShipmentNotification shipmentNotification = message.as(ShipmentNotification.TYPE);
+        Enums.OrderStatus orderStatus = null;
+        if (shipmentNotification.getShipmentStatus() == Enums.ShipmentStatus.APPROVED) {
+            orderStatus = Enums.OrderStatus.READY_FOR_SHIPMENT;
+        } else if (shipmentNotification.getShipmentStatus() == Enums.ShipmentStatus.DELIVERY_IN_PROGRESS) {
+            orderStatus = Enums.OrderStatus.IN_TRANSIT;
+        } else if (shipmentNotification.getShipmentStatus() == Enums.ShipmentStatus.CONCLUDED) {
+            orderStatus = Enums.OrderStatus.DELIVERED;
+        }
+
+        sellerState.updateOrderStatus(shipmentNotification.getOrderId(), orderStatus, shipmentNotification.getEventDate());
+
+
+        context.storage().set(SELLERSTATE, sellerState);
+//        UpdateOrderStatus(context, orderId, status, eventTime);
     }
 
-//    private void saveDeleteProdAsyncTask(Context context, long productId) {
-//        SellerAsyncState sellerAsyncState = getSellerAsyncState(context);
-//        Map<Long, SendType> deleteProdTaskList = sellerAsyncState.getDeleteProdTaskList();
-//        deleteProdTaskList.put(productId, SendType.None);
-//        context.storage().set(SELLERASYNCSTATE, sellerAsyncState);
-//    }
+    /**
+     * Process individual (i.e., each package at a time) delivery notifications
+     */
+    private void ProcessDeliveryNotification(Context context, Message message) {
+        SellerState sellerState = getSellerState(context);
+        DeliveryNotification deliveryNotification = message.as(DeliveryNotification.TYPE);
+
+        Set<OrderEntry> orderEntries = sellerState.getOrderEntries();
+        for (OrderEntry orderEntry : orderEntries) {
+            if (orderEntry.getOrder_id() == deliveryNotification.getOrderId()
+                    && orderEntry.getProduct_id() == deliveryNotification.getProductID())
+            {
+                orderEntry.setDelivery_status(deliveryNotification.getPackageStatus());
+                orderEntry.setDelivery_date(deliveryNotification.getEventDate());
+                orderEntry.setPackage_id(deliveryNotification.getPackageId());
+            }
+        }
+
+        context.storage().set(SELLERSTATE, sellerState);
+    }
 }
-
-//# 关于异步的处理： 除了动态buffer，还可以为每一种异步请求新建一个handler，然后在seller这里产生唯一的id，然后在handler里面定义状态变量

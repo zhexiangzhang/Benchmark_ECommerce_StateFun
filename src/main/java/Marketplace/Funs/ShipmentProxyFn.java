@@ -1,25 +1,17 @@
 package Marketplace.Funs;
 
-import Common.Entity.BasketItem;
-import Common.Entity.KafkaResponse;
+import Common.Utils.Utils;
+import Common.Entity.TransactionMark;
 import Marketplace.Constant.Constants;
-import Marketplace.Constant.Enums;
-import Marketplace.Types.MsgToShipment.ProcessShipment;
 import Marketplace.Types.MsgToShipment.UpdateShipment;
 import Marketplace.Types.MsgToShipmentProxy.UpdateShipments;
-import Marketplace.Types.MsgToStock.CheckoutResv;
-import Marketplace.Types.State.ProductState;
 import Marketplace.Types.State.ShipmentProxyState;
-import Marketplace.Types.State.ShipmentState;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
-import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
-import org.apache.flink.statefun.sdk.java.types.Type;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -68,7 +60,7 @@ public class ShipmentProxyFn implements StatefulFunction {
         // 循环partitionNum次，每次发送一个UpdateShipment
         for (int i = 0; i < partitionNum; i++) {
             // TODO: 7/6/2023
-            sendMessage(context,
+            Utils.sendMessage(context,
                     ShipmentFn.TYPE,
                     String.valueOf(i),
                     UpdateShipment.TYPE,
@@ -94,13 +86,13 @@ public class ShipmentProxyFn implements StatefulFunction {
 
             String response = "";
             try {
-                KafkaResponse kafkaResponse = new KafkaResponse(
+                TransactionMark transactionMark = new TransactionMark(
                         tid,
                         tid,
                         "0",
                         "success");
                 ObjectMapper mapper = new ObjectMapper();
-                response = mapper.writeValueAsString(kafkaResponse);
+                response = mapper.writeValueAsString(transactionMark);
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
@@ -113,12 +105,5 @@ public class ShipmentProxyFn implements StatefulFunction {
                             .build());
         }
         context.storage().set(PROXYSTATE, shipmentProxyState);
-    }
-
-    private <T> void sendMessage(Context context, TypeName addressType, String addressId, Type<T> messageType, T messageContent) {
-        Message msg = MessageBuilder.forAddress(addressType, addressId)
-                .withCustomType(messageType, messageContent)
-                .build();
-        context.send(msg);
     }
 }

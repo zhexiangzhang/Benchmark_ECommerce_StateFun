@@ -1,7 +1,6 @@
 package Marketplace.Types.MsgForTesting;
 
 import Marketplace.Constant.Constants;
-import Marketplace.Types.MsgToStock.CheckoutResv;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.types.SimpleType;

@@ -2,9 +2,14 @@ package Common.Entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -12,26 +17,45 @@ import java.util.List;
 public class Invoice {
     @JsonProperty("customerCheckout")
     private CustomerCheckout customerCheckout;
-    @JsonProperty("order")
-    private Order order;
+    @JsonProperty("orderID")
+    private long orderID;
+    @JsonProperty("invoiceNumber")
+    private String invoiceNumber;
     @JsonProperty("items")
     private List<OrderItem> items;
     // because checkout chose a random partition to send the order
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonProperty("issueDate")
+    private LocalDateTime issueDate;
+    @JsonProperty("totalInvoice")
+    private double totalInvoice;
     @JsonProperty("orderPartitionID")
     private String orderPartitionID;
+//    @JsonProperty("instanceId")
+//    private int instanceId;
 
     public Invoice() {
     }
 
     @JsonCreator
     public Invoice(@JsonProperty("customerCheckout") CustomerCheckout customerCheckout,
-                   @JsonProperty("order") Order order,
+                   @JsonProperty("orderID") long orderID,
+                   @JsonProperty("invoiceNumber") String invoiceNumber,
                    @JsonProperty("items") List<OrderItem> items,
-                   @JsonProperty("orderPartitionID") String orderPartitionID) {
+                   @JsonProperty("totalInvoice") double totalInvoice,
+                   @JsonProperty("issueDate") LocalDateTime issueDate,
+                   @JsonProperty("orderPartitionID") String orderPartitionID
+//                   @JsonProperty("instanceId") int instanceId
+    ) {
         this.customerCheckout = customerCheckout;
-        this.order = order;
+        this.orderID = orderID;
+        this.invoiceNumber = invoiceNumber;
+        this.issueDate = issueDate;
+        this.totalInvoice = totalInvoice;
         this.items = items;
         this.orderPartitionID = orderPartitionID;
+//        this.instanceId = instanceId;
     }
 
 }

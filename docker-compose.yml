@@ -6,12 +6,12 @@ services:
   #    Functions service
   ###############################################################
 
-#  e-commerce-functions:
-#    build:
-#      dockerfile: Dockerfile
-#      context: .
-#    expose:
-#      - "1108"
+  e-commerce-functions:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    expose:
+      - "1108"
 
   ###############################################################
   #    StateFun runtime
@@ -41,7 +41,8 @@ services:
     volumes:
       #      - ./module.yaml:/opt/statefun/modules/hesse/module.yaml
       - ./module.yaml:/module.yaml
-#      - ./flink-conf.yaml:/opt/flink/conf/flink-conf.yaml
+#      - ./module.yaml:/opt/statefun/modules/Ecommerce/module.yaml
+      - ./flink-conf.yaml:/opt/flink/conf/flink-conf.yaml
 
   worker:
     image: apache/flink-statefun-playground:3.2.0-1.0
@@ -55,13 +56,14 @@ services:
     links:
       - master:master
       - kafka:kafka
-#      - e-commerce-functions:e-commerce-functions
+      - e-commerce-functions:e-commerce-functions
     environment:
       ROLE: worker
       MASTER_HOST: master
     volumes:
       - ./module.yaml:/module.yaml
-#      - ./flink-conf.yaml:/opt/flink/conf/flink-conf.yaml
+#      - ./module.yaml:/opt/statefun/modules/Ecommerce/module.yaml
+      - ./flink-conf.yaml:/opt/flink/conf/flink-conf.yaml
 
 
   ###############################################################

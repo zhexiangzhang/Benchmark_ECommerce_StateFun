@@ -5,12 +5,17 @@ import Marketplace.Constant.Constants;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.types.SimpleType;
 import org.apache.flink.statefun.sdk.java.types.Type;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,24 +45,30 @@ public class CartState {
     @JsonProperty("currentTransactionId")
     public int currentTransactionId;
 
+    @JsonProperty("createdAt")
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    private LocalDateTime createdAt;
+
+    @JsonProperty("updateAt")
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    private LocalDateTime updateAt;
+
     public CartState() {
         this.status = Status.OPEN;
         this.items = new HashMap<>();
+        this.createdAt = LocalDateTime.now();
+        this.updateAt = LocalDateTime.now();
     }
 
 //    写一个方法，接受Long和BasketItem，给items添加一个元素
     @JsonIgnore
     public void addItem(Long itemId, BasketItem item) {
-//      todo 如果存在了，就用新的item覆盖原来itemid对应的值，感觉不是很合理,c#这么做
         if (this.items.containsKey(itemId)) {
             this.items.replace(itemId, item);
         }
         this.items.put(itemId, item);
-    }
-
-    @JsonIgnore
-    public void removeItem(Long itemId) {
-        this.items.remove(itemId);
     }
 
     @JsonIgnore

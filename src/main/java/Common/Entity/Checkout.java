@@ -9,6 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.types.SimpleType;
 import org.apache.flink.statefun.sdk.java.types.Type;
@@ -18,6 +19,7 @@ import java.util.Map;
 
 @Getter
 @Setter
+@ToString
 public class Checkout {
 
     private static final ObjectMapper mapper = new ObjectMapper();

@@ -20,11 +20,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class TempUserLoginFn implements StatefulFunction{
 
-    //  注册函数，逻辑名称=<namespace>+<name>
-//    static final TypeName TYPE = TypeName.typeNameFromString("e-commerce.fns/login"); // 和下面的等价
     static final TypeName TYPE = TypeName.typeNameOf(Constants.FUNS_NAMESPACE, "login");
 
-//  存储的状态值
     static final ValueSpec<Integer> SEEN = ValueSpec.named("seen").withIntType();
 
 //    static final TypeName CUSTOM_EGRESS = TypeName.typeNameOf("e-commerce.fns", "custom-sink");
@@ -36,8 +33,6 @@ public class TempUserLoginFn implements StatefulFunction{
             .withValueSpec(SEEN) // 如果是两个，就是.withValueSpecs(SEEN, SEEN2)
             .withSupplier(TempUserLoginFn::new)
             .build();
-
-//    DummyPaymentServiceService dummyPaymentService = new DummyPaymentServiceService();
 
     @Override
     public CompletableFuture<Void> apply(Context context, Message message){
@@ -57,9 +52,9 @@ public class TempUserLoginFn implements StatefulFunction{
                             .build());
         }  else if (message.is(Types.stringType())) {
             System.out.println("function: tempUserLoginFn, message: CYFCFY");
+        } else {
+            System.out.println("function: tempUserLoginFn 11, message: " + message);
         }
-
-
         return context.done();
     }
 }

@@ -1,28 +1,24 @@
 package Marketplace.Funs;
 
 import Common.Entity.*;
+import Common.Utils.Utils;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
-import Marketplace.Types.MsgToCartFn.CheckoutCartResult;
+import Marketplace.Types.MsgToCartFn.Cleanup;
 import Marketplace.Types.MsgToCustomer.NotifyCustomer;
-import Marketplace.Types.MsgToOrderFn.OrderStateUpdate;
-import Marketplace.Types.MsgToPaymentFn.ProcessPayment;
-import Marketplace.Types.MsgToStock.CheckoutResv;
-import Marketplace.Types.State.OrderAsyncTaskState;
+import Marketplace.Types.MsgToOrderFn.PaymentNotification;
+import Marketplace.Types.MsgToOrderFn.ShipmentNotification;
+import Marketplace.Types.MsgToPaymentFn.InvoiceIssued;
+import Marketplace.Types.MsgToStock.ReserveStockEvent;
+import Marketplace.Types.State.ReserveStockTaskState;
 import Marketplace.Types.State.OrderState;
-import Marketplace.Types.State.OrderTempInfoState;
+import Marketplace.Types.State.CustomerCheckoutInfoState;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
-import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
-import org.apache.flink.statefun.sdk.java.types.Type;
+import org.apache.flink.statefun.sdk.java.types.Types;
 
-
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -35,14 +31,13 @@ public class OrderFn implements StatefulFunction {
     static final ValueSpec<Long> ORDERIDSTATE = ValueSpec.named("orderId").withLongType();
     static final ValueSpec<Long> ORDERHISTORYIDSTATE = ValueSpec.named("orderHistoryId").withLongType();
     // store checkout info
-    static final ValueSpec<OrderTempInfoState> TEMPCKINFOSTATE = ValueSpec.named("tempCKInfoState").withCustomType(OrderTempInfoState.TYPE);
+    static final ValueSpec<CustomerCheckoutInfoState> TEMPCKINFOSTATE = ValueSpec.named("tempCKInfoState").withCustomType(CustomerCheckoutInfoState.TYPE);
     // tmp store async task state
-    static final ValueSpec<OrderAsyncTaskState> ASYNCTASKSTATE = ValueSpec.named("asyncTaskState").withCustomType(OrderAsyncTaskState.TYPE);
+    static final ValueSpec<ReserveStockTaskState> ASYNCTASKSTATE = ValueSpec.named("asyncTaskState").withCustomType(ReserveStockTaskState.TYPE);
 
     // store order info
     static final ValueSpec<OrderState> ORDERSTATE = ValueSpec.named("orderState").withCustomType(OrderState.TYPE);
 
-    //  包含了创建函数实例所需的所有信息
     public static final StatefulFunctionSpec SPEC = StatefulFunctionSpec.builder(TYPE)
             .withValueSpecs(ORDERIDSTATE, ASYNCTASKSTATE, TEMPCKINFOSTATE, ORDERSTATE, ORDERHISTORYIDSTATE)
             .withSupplier(OrderFn::new)
@@ -53,17 +48,25 @@ public class OrderFn implements StatefulFunction {
         try {
             // cart --> order, (checkout request)
             if (message.is(Checkout.TYPE)) {
-                onAtptReservation(context, message);
+                ReserveStockAsync(context, message);
             }
             // stock --> order, (checkout response)
-            else if (message.is(CheckoutResv.TYPE)) {
-                onHandleCheckoutResponse(context, message);
+            else if (message.is(ReserveStockEvent.TYPE)) {
+                ReserveStockResult(context, message);
             }
             // xxxx ---> order (update order status)
-            else if (message.is(OrderStateUpdate.TYPE)) {
-                OrderStateUpdate info = message.as(OrderStateUpdate.TYPE);
+            else if (message.is(PaymentNotification.TYPE)) {
+                PaymentNotification info = message.as(PaymentNotification.TYPE);
                 UpdateOrderStatus(context, info.getOrderId(), info.getOrderStatus());
             }
+            else if (message.is(ShipmentNotification.TYPE))
+            {
+                ProcessShipmentNotification(context, message);
+            }
+//            else if (message.is(Cleanup.TYPE))
+//            {
+//                onCleanup(context);
+//            }
         } catch (Exception e) {
             System.out.println("OrderFn error: !!!!!!!!!!!!" + e.getMessage());
             e.printStackTrace();
@@ -75,12 +78,12 @@ public class OrderFn implements StatefulFunction {
 //                                  helper functions
 //    ===============================================================================
 
-    private OrderAsyncTaskState getAtptResvTaskState(Context context) {
-        return context.storage().get(ASYNCTASKSTATE).orElse(new OrderAsyncTaskState());
+    private ReserveStockTaskState getAtptResvTaskState(Context context) {
+        return context.storage().get(ASYNCTASKSTATE).orElse(new ReserveStockTaskState());
     }
 
-    private OrderTempInfoState getTempCKInfoState(Context context) {
-        return context.storage().get(TEMPCKINFOSTATE).orElse(new OrderTempInfoState());
+    private CustomerCheckoutInfoState getTempCKInfoState(Context context) {
+        return context.storage().get(TEMPCKINFOSTATE).orElse(new CustomerCheckoutInfoState());
     }
 
     private OrderState getOrderState(Context context) {
@@ -114,207 +117,116 @@ public class OrderFn implements StatefulFunction {
         System.out.println(log);
     }
 
-    private <T> void sendMessage(Context context, TypeName addressType, String addressId, Type<T> messageType, T messageContent) {
-        Message msg = MessageBuilder.forAddress(addressType, addressId)
-                .withCustomType(messageType, messageContent)
-                .build();
-        context.send(msg);
-    }
-
 //    ====================================================================================
 //    Attemp/Confirm/Cance  Reservation (two steps business logic)【send message to stock】
 //    ====================================================================================
 
-    private void onAtptReservation(Context context, Message message) {
-        OrderAsyncTaskState atptResvTaskState = getAtptResvTaskState(context);
-        OrderTempInfoState tempCKInfoState = getTempCKInfoState(context);
-        Checkout checkout = message.as(Checkout.TYPE);
+    private void ReserveStockAsync(Context context, Message message) {
 
+        // get state and message
+        ReserveStockTaskState resvTask_State = getAtptResvTaskState(context);
+        CustomerCheckoutInfoState customerCkoutInfo_State = getTempCKInfoState(context);
+        Checkout checkout = message.as(Checkout.TYPE);
+        // get fields
         Map<Long, BasketItem> items = checkout.getItems();
         long customerId = checkout.getCustomerCheckout().getCustomerId();
         int nItems = items.size();
 
-        tempCKInfoState.addCheckout(customerId, checkout);
-//        atptResvTaskState.addNewTaskCnt(customerId, nItems);
-        atptResvTaskState.addNewTask(customerId, nItems, Enums.TaskType.AttemptReservationsType);
-        context.storage().set(ASYNCTASKSTATE, atptResvTaskState);
-        context.storage().set(TEMPCKINFOSTATE, tempCKInfoState);
+        // change state
+        customerCkoutInfo_State.addCheckout(customerId, checkout);
+        resvTask_State.addNewTask(customerId, nItems);
+        // save state
+        context.storage().set(ASYNCTASKSTATE, resvTask_State);
+        context.storage().set(TEMPCKINFOSTATE, customerCkoutInfo_State);
 
+        // send message to stock
         for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
             int stockPartitionId = (int) (entry.getValue().getProductId() % Constants.nStockPartitions);
-            sendMessage(context,
+            Utils.sendMessage(context,
                     StockFn.TYPE,
                     String.valueOf(stockPartitionId),
-                    CheckoutResv.TYPE,
-                    new CheckoutResv(
+                    ReserveStockEvent.TYPE,
+                    new ReserveStockEvent(
                             customerId,
                             entry.getValue(),
-                            Enums.TaskType.AttemptReservationsType,
                             Enums.ItemStatus.UNKNOWN));
         }
 
+        // log
         String log = getPartionText(context.self().id())
                 + "OrderFn: attempt reservation, message sent to stock, customerId: "
                 + customerId + "\n";
         showLogPrt(log);
     }
 
-    //    confirm reservation or cancel reservation (second step, send confirm or cancel message to stock)
-    private void onDecideReservations(Context context, List<CheckoutResv> checkoutResvs, Enums.TaskType taskType) {
-        for (CheckoutResv checkoutResv : checkoutResvs) {
-            int stockPartitionId = (int) (checkoutResv.getItem().getProductId() % Constants.nStockPartitions);
-            checkoutResv.setTaskType(taskType);
-            sendMessage(context,
-                    StockFn.TYPE,
-                    String.valueOf(stockPartitionId),
-                    CheckoutResv.TYPE,
-                    checkoutResv);
-        }
-        String log = getPartionText(context.self().id())
-                + "OrderFn: decide reservation, message sent to stock, customerId: " + taskType + "\n";
-        showLogPrt(log);
-    }
 
 //    ====================================================================================
 //                  handle checkout response 【receive message from stock】
 //    ====================================================================================
 
-    private void onHandleCheckoutResponse(Context context, Message message) {
-        CheckoutResv checkoutResv = message.as(CheckoutResv.TYPE);
-        Enums.TaskType taskType = checkoutResv.getTaskType();
-        long customerId = checkoutResv.getCustomerId();
-        switch (taskType) {
-            case AttemptReservationsType:
-                String log = getPartionText(context.self().id())
-                        + " #sub-task#, attempt reservation response, customerId: " + customerId ;
-//                showLogPrt(log);
-                dealAttemptResponse(context, checkoutResv);
-                break;
-            case ConfirmReservationsType:
-                String log2 = getPartionText(context.self().id())
-                        + " #sub-task#, confirm reservation response, customerId: " + customerId ;
-//                showLogPrt(log2);
-                dealConfirmResponse(context, customerId);
-                break;
-            case CancelReservationsType:
-                String log3 = getPartionText(context.self().id())
-                        + " #sub-task#, cancel reservation response, customerId: " + customerId ;
-//                showLogPrt(log3);
-                dealCancelResponse(context, customerId);
-                break;
-            default:
-                break;
-        }
-    }
+    private void ReserveStockResult(Context context, Message message) {
 
-    private void dealAttemptResponse(Context context, CheckoutResv checkoutResv) {
-        long customerId = checkoutResv.getCustomerId();
-        OrderAsyncTaskState atptResvTaskState = getAtptResvTaskState(context);
-        atptResvTaskState.addCompletedSubTask(customerId, checkoutResv, Enums.TaskType.AttemptReservationsType);
-        boolean isTaskComplete = atptResvTaskState.isTaskComplete(customerId, Enums.TaskType.AttemptReservationsType);
+        // get state and message
+        ReserveStockEvent reserveStockEvent = message.as(ReserveStockEvent.TYPE);
+        ReserveStockTaskState resvTask_State = getAtptResvTaskState(context);
+
+        // get fields
+        long customerId = reserveStockEvent.getCustomerId();
+
+        // change state
+        resvTask_State.addCompletedSubTask(customerId, reserveStockEvent);
+
+        // when all sub-tasks are completed
+        boolean isTaskComplete = resvTask_State.isTaskComplete(customerId);
         if (isTaskComplete) {
-            List<CheckoutResv> checkoutResvs = atptResvTaskState.getSingleCheckoutResvTask(customerId);
-            if (atptResvTaskState.isTaskSuccess(customerId)) {
-                String log = getPartionText(context.self().id())
-                        + " OrderFn: attempt reservation success, customerId: " + customerId;
-                showLogPrt(log);
-                // set anync task state
-                atptResvTaskState.addNewTask(customerId, checkoutResvs.size(), Enums.TaskType.ConfirmReservationsType);
-                onDecideReservations(context, checkoutResvs, Enums.TaskType.ConfirmReservationsType);
+            // get state
+            CustomerCheckoutInfoState customerCheckoutInfoState = getTempCKInfoState(context);
+
+            // get fields
+            Checkout checkout = customerCheckoutInfoState.getSingleCheckout(customerId);
+            Map<Long, BasketItem> itemsSuccessResv = resvTask_State.getSingleSuccessResvItems(customerId);
+            Map<Long, BasketItem> itemsFailedResv = resvTask_State.getSingleFailedResvItems(customerId);;
+            Checkout checkoutSuccess = new Checkout(checkout.getCreatedAt(), checkout.getCustomerCheckout(), itemsSuccessResv);
+            Checkout checkoutFailed = new Checkout(checkout.getCreatedAt(), checkout.getCustomerCheckout(), itemsFailedResv);
+
+            if (itemsSuccessResv.size() == 0) {
+
+                // all the items are unavailable, send transaction mark to driver, notify customer
+                Utils.notifyTransactionComplete(context,
+                        Enums.TransactionType.checkoutTask.toString(),
+                        String.valueOf(customerId),
+                        customerId,
+                        checkout.getCustomerCheckout().getInstanceId(),
+                        String.valueOf(customerId),
+                        "fail");
+
+                Utils.sendMessage(context,
+                        CustomerFn.TYPE,
+                        String.valueOf(customerId % Constants.nCustomerPartitions),
+                        NotifyCustomer.TYPE,
+                        new NotifyCustomer(customerId, null, Enums.NotificationType.notify_fail_checkout));
             } else {
-                String log = getPartionText(context.self().id())
-                        + " OrderFn: attempt reservation failed, customerId: " + customerId;
-                showLogPrt(log);
-                List<CheckoutResv> checkoutResvsSuccessSub = atptResvTaskState.getSuccessAttempResvSubtask(customerId);
+                // notify the customer the failed items,
+                Utils.sendMessage(context,
+                        CustomerFn.TYPE,
+                        String.valueOf(customerId % Constants.nCustomerPartitions),
+                        Types.stringType(),
+                        checkoutFailed.toString()
+                        );
 
-
-                if (checkoutResvsSuccessSub.size() == 0) {
-                    // bug fix, 可能每一项库存都不足
-                    String log_ = getPartionText(context.self().id())
-                            + " @@@@ OrderFn: cancel reservation finish, customerId: " + customerId + "\n";
-                    showLogPrt(log_);
-                    sendMessage(context,
-                            CartFn.TYPE,
-                            String.valueOf(customerId),
-                            CheckoutCartResult.TYPE,
-                            new CheckoutCartResult(false));
-
-                    //  remove checkout temp info
-                    OrderTempInfoState orderTempInfoState = getTempCKInfoState(context);
-                    Checkout checkout = orderTempInfoState.getSingleCheckout(customerId);
-
-                    processFailOrder(context, checkout); // next step: paymentFn (nothing to dp with it in this case)
-
-                    orderTempInfoState.removeSingleCheckout(customerId);
-                    context.storage().set(TEMPCKINFOSTATE, orderTempInfoState);
-                } else {
-                    // set anync task state
-                    atptResvTaskState.addNewTask(customerId, checkoutResvsSuccessSub.size(), Enums.TaskType.CancelReservationsType);
-                    onDecideReservations(context, checkoutResvsSuccessSub, Enums.TaskType.CancelReservationsType);
-                }
+                // generate order accoring to the success items , and send order to paymentFn
+                generateOrder(context, checkoutSuccess);
             }
-            atptResvTaskState.removeTask(customerId, Enums.TaskType.AttemptReservationsType);
+
+            // change state
+            customerCheckoutInfoState.removeSingleCheckout(customerId);
+            resvTask_State.removeTask(customerId);
+
+            // save state
+            context.storage().set(TEMPCKINFOSTATE, customerCheckoutInfoState);
         }
-        context.storage().set(ASYNCTASKSTATE, atptResvTaskState);
-    }
-
-//    last step of case 1: confirm reservation
-    private void dealConfirmResponse(Context context, Long customerId) {
-        OrderAsyncTaskState atptResvTaskState = getAtptResvTaskState(context);
-        atptResvTaskState.addCompletedSubTask(customerId, null, Enums.TaskType.ConfirmReservationsType);
-        boolean isTaskComplete = atptResvTaskState.isTaskComplete(customerId, Enums.TaskType.ConfirmReservationsType);
-        if (isTaskComplete) {
-            String log = getPartionText(context.self().id())
-                    + " @@@@ OrderFn: confirm reservation finish, customerId: " + customerId + "\n";
-            showLogPrt(log);
-//            // TODO: 6/6/2023  do something , no its not the time to finsih
-//            sendMessage(context,
-//                    CartFn.TYPE,
-//                    String.valueOf(customerId),
-//                    CheckoutCartResult.TYPE,
-//                    new CheckoutCartResult(true));
-
-            //  remove checkout temp info and asyncTask info,
-            OrderTempInfoState orderTempInfoState = getTempCKInfoState(context);
-            Checkout checkout = orderTempInfoState.getSingleCheckout(customerId);
-
-            processSuccessOrder(context, checkout); // next step: paymentFn -> payment and save history
-
-            orderTempInfoState.removeSingleCheckout(customerId);
-            atptResvTaskState.removeTask(customerId, Enums.TaskType.CancelReservationsType);
-            context.storage().set(TEMPCKINFOSTATE, orderTempInfoState);
-        }
-        context.storage().set(ASYNCTASKSTATE, atptResvTaskState);
-    }
-
-//    last step of case 2: cancel reservation
-    private void dealCancelResponse(Context context, Long customerId) {
-        OrderAsyncTaskState atptResvTaskState = getAtptResvTaskState(context);
-        atptResvTaskState.addCompletedSubTask(customerId, null, Enums.TaskType.CancelReservationsType);
-        boolean isTaskComplete = atptResvTaskState.isTaskComplete(customerId, Enums.TaskType.CancelReservationsType);
-        if (isTaskComplete) {
-
-            String log = getPartionText(context.self().id())
-                    + " @@@@ OrderFn: cancel reservation finish, customerId: " + customerId + "\n";
-            showLogPrt(log);
-//            notify cartFn
-            sendMessage(context,
-                    CartFn.TYPE,
-                    String.valueOf(customerId),
-                    CheckoutCartResult.TYPE,
-                    new CheckoutCartResult(false));
-
-//          remove checkout temp info and asyncTask info,
-            OrderTempInfoState orderTempInfoState = getTempCKInfoState(context);
-            Checkout checkout = orderTempInfoState.getSingleCheckout(customerId);
-
-            processFailOrder(context, checkout); // next step: paymentFn (nothing to dp with it in this case)
-
-            orderTempInfoState.removeSingleCheckout(customerId);
-            atptResvTaskState.removeTask(customerId, Enums.TaskType.CancelReservationsType);
-            context.storage().set(TEMPCKINFOSTATE, orderTempInfoState);
-        }
-        context.storage().set(ASYNCTASKSTATE, atptResvTaskState);
+        // HAVE TO PUT HERE
+        context.storage().set(ASYNCTASKSTATE, resvTask_State);
     }
 
 //    =================================================================================
@@ -322,111 +234,220 @@ public class OrderFn implements StatefulFunction {
 //    Handing over to paymentFn for processing.
 //    =================================================================================
 
-    private void processSuccessOrder(Context context, Checkout checkout) {
+    private void generateOrder(Context context, Checkout successCheckout) {
         long orderId = generateNextOrderID(context);
+        Map<Long, BasketItem> items = successCheckout.getItems();
 
-        //        calculate total amount
-        BigDecimal total_amount = BigDecimal.ZERO;
-        Map<Long, BasketItem> items = checkout.getItems();
+        // calculate total freight_value
+        double total_freight_value = 0;
         for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
             BasketItem item = entry.getValue();
-            BigDecimal price = BigDecimal.valueOf(item.getUnitPrice());
-            int quantity = item.getQuantity();
-            BigDecimal amount = price.multiply(BigDecimal.valueOf(quantity));
-            total_amount = total_amount.add(amount);
+            total_freight_value += item.getFreightValue();
         }
 
-        Order successOrder = new Order();
-        successOrder.setId(orderId);
-        successOrder.setCustomerId(checkout.getCustomerCheckout().getCustomerId());
-//      invoice is a request for payment, so it makes sense to use this status now
-        successOrder.setStatus(Enums.OrderStatus.INVOICED);
-        successOrder.setPurchaseTimestamp(checkout.getCreatedAt());
-        successOrder.setCreated_at(LocalDateTime.now());
-        successOrder.setData(checkout.toString());
-        successOrder.setTotalAmount(total_amount);
-        successOrder.setCountItems(checkout.getItems().size());
+        //  calculate total amount
+        double total_amount = 0;
 
-//        add order and orderHistory to orderState
+        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
+            BasketItem item = entry.getValue();
+            double amount = item.getUnitPrice() * item.getQuantity();
+            total_amount = total_amount + amount;
+        }
+
+        // total before discounts
+        double total_items = total_amount;
+//
+        // apply vouchers per product, but only until total >= 0 for each item
+        Map<Long, Double> totalPerItem = new HashMap<>();
+        double total_incentive = 0;
+        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
+            BasketItem item = entry.getValue();
+
+            double total_item = item.getUnitPrice() * item.getQuantity();
+            double[] vouchers = item.getVouchers();
+            double sumVouchers = 0;
+            for (double voucher : vouchers) {
+                sumVouchers = sumVouchers + voucher;
+            }
+
+            if (total_item - sumVouchers > 0) {
+                total_amount = total_amount - sumVouchers;
+                total_incentive = total_incentive + sumVouchers;
+                total_item = total_item - sumVouchers;
+            } else {
+                total_amount = total_amount - total_item;
+                total_incentive = total_incentive + total_item;
+                total_item = 0;
+            }
+            totalPerItem.put(entry.getKey(), total_item);
+        }
+
+        // get state
         OrderState orderState = getOrderState(context);
-        orderState.addOrder(orderId, successOrder);
 
-//        Map<Long, Order> orders = orderState.getOrders();
-//        TreeMap<Long, List<OrderHistory>> orderHistories = orderState.getOrderHistory();
-        long historyId = generateNextOrderHistoryID(context);
+        long customerId = successCheckout.getCustomerCheckout().getCustomerId();
         LocalDateTime now = LocalDateTime.now();
 
-//        orders.put(orderId, successOrder);
-        OrderHistory orderHistory = new OrderHistory(historyId, now, Enums.OrderStatus.INVOICED);
-//        orderHistories.put(orderId, new ArrayList<>());
-//        orderHistories.get(orderId).add(orderHistory);
-        orderState.addOrderHistory(orderId, orderHistory);
-        context.storage().set(ORDERSTATE, orderState);
+        StringBuilder invoiceNumber = new StringBuilder();
+        invoiceNumber.append(customerId)
+                .append("_").append(now.toString()).append("d")
+                .append("-").append(orderState.generateCustomerNextOrderID(customerId));
 
-        List<OrderItem> orderItems = new ArrayList<>();
-        int i = 0;
-        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
-            BasketItem item = entry.getValue();
-            orderItems.add(new OrderItem(
+        // add order and orderHistory to orderState
+        Order successOrder = new Order();
+        successOrder.setId(orderId);
+        successOrder.setCustomerId(customerId);
+//      invoice is a request for payment, so it makes sense to use this status now
+        successOrder.setStatus(Enums.OrderStatus.INVOICED);
+        successOrder.setInvoiceNumber(invoiceNumber.toString());
+        successOrder.setPurchaseTimestamp(successCheckout.getCreatedAt());
+        successOrder.setCreated_at(now);
+        successOrder.setUpdated_at(now);
+        successOrder.setData(successCheckout.toString());
+        successOrder.setTotalAmount(total_amount);
+        successOrder.setTotalFreight(total_freight_value);
+        successOrder.setTotalItems(total_items);
+        successOrder.setTotalIncentive(total_incentive);
+        successOrder.setCountItems(successCheckout.getItems().size());
+
+        // add order
+        orderState.addOrder(orderId, successOrder);
+
+        // add history
+        OrderHistory orderHistory = new OrderHistory(
                 orderId,
-                i,
+                now,
+                Enums.OrderStatus.INVOICED);
+        orderState.addOrderHistory(orderId, orderHistory);
+
+        // add orderItems and create invoice
+        List<OrderItem> invoiceItems = new ArrayList<>();
+        int order_item_id = 0;
+        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
+
+            BasketItem item = entry.getValue();
+            OrderItem oim = new OrderItem(
+                orderId,
+                order_item_id,
                 item.getProductId(),
+                item.getProductName(),
                 item.getSellerId(),
                 item.getUnitPrice(),
+                item.getFreightValue(),
                 item.getQuantity(),
-                item.getQuantity() * item.getUnitPrice()
-            ));
-            i++;
+                item.getQuantity() * item.getUnitPrice(),
+                totalPerItem.get(entry.getKey()),
+                LocalDateTime.now().plusDays(3)
+            );
+
+            orderState.addOrderItem(oim);
+
+            // vouchers so payment can process
+            oim.setVouchers(item.getVouchers());
+            invoiceItems.add(oim);
+
+            order_item_id++;
         }
 
-        Invoice invoice = new Invoice(
-                checkout.getCustomerCheckout(),
-                successOrder,
-                orderItems,
-                context.self().id()
-        );
-
-//
-        long paymentPation = orderId % Constants.nPaymentPartitions;
-        sendMessage(context,
-                PaymentFn.TYPE,
-                String.valueOf(paymentPation),
-                ProcessPayment.TYPE,
-                new ProcessPayment(invoice));
-    }
-
-    private void processFailOrder(Context context, Checkout checkout) {
-        // assuming most succeed, overhead is not too high
-        long orderId = generateNextOrderID(context);
-
-        Order failedOrder = new Order();
-        failedOrder.setId(orderId);
-        failedOrder.setCustomerId(checkout.getCustomerCheckout().getCustomerId());
-        failedOrder.setStatus(Enums.OrderStatus.CANCLED);
-        failedOrder.setPurchaseTimestamp(checkout.getCreatedAt());
-        failedOrder.setCreated_at(LocalDateTime.now());
-        failedOrder.setData(checkout.toString());
-
-        OrderState orderState = getOrderState(context);
-        orderState.addOrder(orderId, failedOrder);
         context.storage().set(ORDERSTATE, orderState);
 
-//       这一步在c#中是paymentFn处理的，但这里为了省去大量的消息久直接在这处理了，上面的successOrder不需要这样
-        UpdateOrderStatus(context, orderId, Enums.OrderStatus.CANCLED);
 
-        long customerId = checkout.getCustomerCheckout().getCustomerId();
-        sendMessage(context,
-                CustomerFn.TYPE,
-                String.valueOf(customerId % Constants.nCustomerPartitions),
-                NotifyCustomer.TYPE,
-                new NotifyCustomer(customerId, failedOrder, Enums.NotificationType.notify_failed_payment));
+        CustomerCheckout customerCheckout = successCheckout.getCustomerCheckout();
+        long orderID = successOrder.getId();
+        String invoiceNumber_ = invoiceNumber.toString();
+        String orderPartitionID = context.self().id();
 
-        // also, its time to finsh the checkout process, notift cartFn
-        sendMessage(context,
-            CartFn.TYPE,
-            String.valueOf(customerId),
-            CheckoutCartResult.TYPE,
-            new CheckoutCartResult(false));
+        Invoice invoice = new Invoice(
+                customerCheckout,
+                orderID,
+                invoiceNumber_,
+                invoiceItems,
+                successOrder.getTotalInvoice(),
+                now,
+                orderPartitionID
+        );
+
+        // send message to paymentFn to pay the invoice
+        long paymentPation = orderId % Constants.nPaymentPartitions;
+        Utils.sendMessage(context,
+                PaymentFn.TYPE,
+                String.valueOf(paymentPation),
+                InvoiceIssued.TYPE,
+                new InvoiceIssued(invoice, successCheckout.getCustomerCheckout().getInstanceId()));
+
+        // send sellerInvoices to each seller
+
+        Map<Long, Invoice> sellerInvoices = new HashMap<>();
+
+        for (OrderItem item : invoiceItems) {
+            long sellerId = item.getSellerId();
+            if (!sellerInvoices.containsKey(sellerId)) {
+                Invoice sellerInvoice = new Invoice(
+                        customerCheckout,
+                        orderID,
+                        invoiceNumber_,
+                        new ArrayList<>(),
+                        0,
+                        now,
+                        orderPartitionID
+                );
+                sellerInvoices.put(sellerId, sellerInvoice);
+            }
+            sellerInvoices.get(sellerId).getItems().add(item);
+        }
+
+        for (Map.Entry<Long, Invoice> entry : sellerInvoices.entrySet()) {
+            long sellerId = entry.getKey();
+            Invoice sellerInvoice = entry.getValue();
+            long sellerPartition = sellerId;
+            Utils.sendMessage(context,
+                    SellerFn.TYPE,
+                    String.valueOf(sellerPartition),
+                    InvoiceIssued.TYPE,
+                    new InvoiceIssued(sellerInvoice, successCheckout.getCustomerCheckout().getInstanceId()));
+        }
+    }
+
+    private void ProcessShipmentNotification(Context context, Message message) {
+
+        OrderState orderState = getOrderState(context);
+        Map<Long, Order> orders = orderState.getOrders();
+        TreeMap<Long, List<OrderHistory>> orderHistories = orderState.getOrderHistory();
+
+        ShipmentNotification shipmentNotification = message.as(ShipmentNotification.TYPE);
+        long orderId = shipmentNotification.getOrderId();
+
+        if (!orders.containsKey(orderId)) {
+            String str = new StringBuilder().append("Order ").append(orderId)
+                    .append(" cannot be found to update to status ").toString();
+            throw new RuntimeException(str);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Enums.OrderStatus status = Enums.OrderStatus.READY_FOR_SHIPMENT;
+        if(shipmentNotification.getShipmentStatus() == Enums.ShipmentStatus.DELIVERY_IN_PROGRESS) {
+            status = Enums.OrderStatus.IN_TRANSIT;
+        } else if(shipmentNotification.getShipmentStatus() == Enums.ShipmentStatus.CONCLUDED) {
+            status = Enums.OrderStatus.DELIVERED;
+        }
+
+        // add history
+        OrderHistory orderHistory = new OrderHistory(
+                orderId,
+                now,
+                status);
+        orderState.addOrderHistory(orderId, orderHistory);
+
+        orders.get(orderId).setUpdated_at(now);
+        orders.get(orderId).setStatus(status);
+
+        if (status == Enums.OrderStatus.DELIVERED) {
+            orders.get(orderId).setDelivered_customer_date(shipmentNotification.getEventDate());
+        }
+
+        context.storage().set(ORDERSTATE, orderState);
+//        UpdateOrderStatus(context, orderId, status, eventTime);
     }
 
     private void UpdateOrderStatus(Context context, long orderId, Enums.OrderStatus status) {
@@ -453,20 +474,20 @@ public class OrderFn implements StatefulFunction {
             case DELIVERED:
                 orders.get(orderId).setDelivered_customer_date(now);
                 break;
-            case CANCLED:
+//            case CANCLED:
             case PAYMENT_FAILED:
-            case PAYMENT_SUCCESS:
+            case PAYMENT_PROCESSED:
                 orders.get(orderId).setPaymentDate(now);
                 break;
             default:
                 break;
         }
 
-        if (status != Enums.OrderStatus.CANCLED) {
-            long historyId = generateNextOrderHistoryID(context);
-            OrderHistory orderHistory = new OrderHistory(historyId, now, status);
-            orderHistories.get(orderId).add(orderHistory);
-        }
+//        if (status != Enums.OrderStatus.CANCLED) {
+//            long historyId = generateNextOrderHistoryID(context);
+//            OrderHistory orderHistory = new OrderHistory(historyId, now, status);
+//            orderHistories.get(orderId).add(orderHistory);
+//        }
 
         context.storage().set(ORDERSTATE, orderState);
 

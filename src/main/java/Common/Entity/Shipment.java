@@ -18,15 +18,18 @@ import java.time.LocalDateTime;
 public class Shipment {
     @JsonProperty("shipmentId") private long shipmentId;
     @JsonProperty("orderId") private long orderId;
-    @JsonProperty("orderPartition") private long orderPartition;
     @JsonProperty("customerId") private long customerId;
-    @JsonProperty("name") private String name;
     @JsonProperty("packageCnt") private int packageCnt;
-    @JsonProperty("address") private String address;
-    @JsonProperty("zipCode") private String zipCode;
-//    @JsonProperty("packageStatus") private Enums.PackageStatus packageStatus;
-    @JsonProperty("packageStatus") String packageStatus;
+    @JsonProperty("totalFreight") private double totalFreight;
+    @JsonProperty("orderPartition") private long orderPartition;
 
+    @JsonProperty("firstName") private String firstName;
+    @JsonProperty("lastName") private String lastName;
+    @JsonProperty("street") private String street;
+    @JsonProperty("zipCode") private String zipCode;
+    @JsonProperty("status") Enums.ShipmentStatus status;
+    @JsonProperty("city") private String city;
+    @JsonProperty("state") private String state;
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonProperty("requestDate") private LocalDateTime requestDate;
@@ -35,25 +38,36 @@ public class Shipment {
     public Shipment(
             @JsonProperty("shipmentId") long shipmentId,
             @JsonProperty("orderId") long orderId,
-            @JsonProperty("orderPartition") long orderPartition,
             @JsonProperty("customerId") long customerId,
-            @JsonProperty("name") String name,
             @JsonProperty("packageCnt") int packageCnt,
-            @JsonProperty("address") String address,
-            @JsonProperty("zipCode") String zipCode,
+
+            @JsonProperty("totalFreight") double totalFreight,
             @JsonProperty("requestDate") LocalDateTime requestDate,
-//            @JsonProperty("packageStatus") Enums.PackageStatus packageStatus
-            @JsonProperty("packageStatus") String packageStatus
+            @JsonProperty("status") Enums.ShipmentStatus status,
+            @JsonProperty("firstName") String firstName,
+            @JsonProperty("lastName") String lastName,
+            @JsonProperty("street") String street,
+
+//            @JsonProperty("orderId") long orderId,
+            @JsonProperty("orderPartition") long orderPartition,
+
+            @JsonProperty("zipCode") String zipCode,
+            @JsonProperty("city") String city,
+            @JsonProperty("state") String state
     ) {
         this.shipmentId = shipmentId;
         this.orderId = orderId;
-        this.orderPartition = orderPartition;
-        this.customerId = customerId;
-        this.name = name;
         this.packageCnt = packageCnt;
-        this.address = address;
-        this.zipCode = zipCode;
+        this.orderPartition = orderPartition;
+        this.totalFreight = totalFreight;
+        this.customerId = customerId;
+        this.status = status;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.street = street;
         this.requestDate = requestDate;
-        this.packageStatus = packageStatus;
+        this.zipCode = zipCode;
+        this.city = city;
+        this.state = state;
     }
 }

@@ -19,24 +19,23 @@ import java.time.LocalDateTime;
 @ToString
 public class OrderHistory {
 
-    @JsonProperty("id") private long id;
-//    @JsonProperty("orderId") private long orderId;
+//    @JsonProperty("id") private long id;
+    @JsonProperty("orderId") private long orderId;
     @JsonProperty("status") private Enums.OrderStatus status;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonProperty("created_at") private LocalDateTime created_at;
 
-
     @JsonCreator
     public OrderHistory() {
     }
 
     @JsonCreator
-    public OrderHistory(@JsonProperty("id") long id,
+    public OrderHistory(@JsonProperty("orderId") long orderId,
                         @JsonProperty("created_at") LocalDateTime created_at,
                         @JsonProperty("status") Enums.OrderStatus status) {
-        this.id = id;
+        this.orderId = orderId;
         this.created_at = created_at;
         this.status = status;
     }

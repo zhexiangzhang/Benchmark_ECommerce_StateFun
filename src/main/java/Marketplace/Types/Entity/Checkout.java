@@ -27,35 +27,4 @@ public class Checkout {
     @JsonProperty("items")
     private Map<Long, BasketItem> items;
 
-//    public Checkout() {
-//    }
-//    public Checkout(LocalDateTime now, CustomerCheckout customerCheckout, Map<Long, BasketItem> items) {
-//        this.createdAt = now;
-//        this.customerCheckout = customerCheckout;
-//        this.items = items;
-//    }
-
-//    public LocalDateTime getCreatedAt() {
-//        return createdAt;
-//    }
-//
-//    public void setCreatedAt(LocalDateTime createdAt) {
-//        this.createdAt = createdAt;
-//    }
-//
-//    public CustomerCheckout getCustomerCheckout() {
-//        return customerCheckout;
-//    }
-//
-//    public void setCustomerCheckout(CustomerCheckout customerCheckout) {
-//        this.customerCheckout = customerCheckout;
-//    }
-//
-//    public Map<Long, BasketItem> getItems() {
-//        return items;
-//    }
-//
-//    public void setItems(Map<Long, BasketItem> items) {
-//        this.items = items;
-//    }
 }

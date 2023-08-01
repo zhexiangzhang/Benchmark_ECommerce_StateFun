@@ -1,9 +1,11 @@
 package Marketplace.Funs;
 
-import Common.Entity.KafkaResponse;
+import Common.Entity.TransactionMark;
+import Common.Utils.Utils;
 import Common.Entity.Product;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
+import Marketplace.Types.MsgToCartFn.Cleanup;
 import Marketplace.Types.MsgToProdFn.GetAllProducts;
 import Marketplace.Types.MsgToProdFn.UpdateSinglePrice;
 import Marketplace.Types.MsgToSeller.*;
@@ -15,7 +17,6 @@ import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
-import org.apache.flink.statefun.sdk.java.types.Type;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -60,9 +61,9 @@ public class ProductFn implements StatefulFunction {
                 onGetProduct(context, message);
             }
             // seller --> product (getAllProducts of seller)
-            else if (message.is(GetAllProducts.TYPE)) {
-                onGetAllProducts(context, message);
-            }
+//            else if (message.is(GetAllProducts.TYPE)) {
+//                onGetAllProducts(context, message);
+//            }
             // seller --> product (add product)
             else if (message.is(AddProduct.TYPE)) {
                 onAddProduct(context, message);
@@ -75,6 +76,10 @@ public class ProductFn implements StatefulFunction {
             else if (message.is(UpdateSinglePrice.TYPE)) {
                 onUpdatePrice(context, message);
             }
+//            else if (message.is(Cleanup.TYPE))
+//            {
+//                onCleanup(context);
+//            }
         } catch (Exception e) {
             System.out.println("Exception in ProductFn !!!!!!!!!!!!!");
             e.printStackTrace();
@@ -104,19 +109,19 @@ public class ProductFn implements StatefulFunction {
 //        sendCheckResToSeller(context, increaseStockChkProd);
 //    }
 
-    private void onGetAllProducts(Context context, Message message) {
-        ProductState productState = getProductState(context);
-        GetAllProducts getAllProducts = message.as(GetAllProducts.TYPE);
-        Long sellerId = getAllProducts.getSeller_id();
-        Product[] products = productState.getProductsOfSeller(sellerId);
-        sendTaskResToSeller(context, products, Enums.TaskType.GetAllProductsType);
-        String log = String.format(getPartionTextInline(context.self().id())
-                + " #sub-task# "
-                + "get all products belongs to seller success, "
-                + "number of products = " + (products.length)
-                , sellerId);
-        showLog(log);
-    }
+//    private void onGetAllProducts(Context context, Message message) {
+//        ProductState productState = getProductState(context);
+//        GetAllProducts getAllProducts = message.as(GetAllProducts.TYPE);
+//        Long sellerId = getAllProducts.getSeller_id();
+//        Product[] products = productState.getProductsOfSeller(sellerId);
+//        sendTaskResToSeller(context, products, Enums.TaskType.GetAllProductsType);
+//        String log = String.format(getPartionTextInline(context.self().id())
+//                + " #sub-task# "
+//                + "get all products belongs to seller success, "
+//                + "number of products = " + (products.length)
+//                , sellerId);
+//        showLog(log);
+//    }
 
     private void onGetProduct(Context context, Message message) {
         ProductState productState = getProductState(context);
@@ -180,7 +185,7 @@ public class ProductFn implements StatefulFunction {
 //        showLog(log);
 
         String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
-        sendMessage(context, StockFn.TYPE, stockFnPartitionID, DeleteProduct.TYPE, deleteProduct);
+        Utils.sendMessage(context, StockFn.TYPE, stockFnPartitionID, DeleteProduct.TYPE, deleteProduct);
     }
 
     private void onUpdatePrice(Context context, Message message) {
@@ -223,9 +228,9 @@ public class ProductFn implements StatefulFunction {
         // sellerID转换成string
         String response = "";
         try {
-            KafkaResponse kafkaResponse = new KafkaResponse(productId, tid, String.valueOf(sellerId), result);
+            TransactionMark transactionMark = new TransactionMark(productId, tid, String.valueOf(sellerId), result);
             ObjectMapper mapper = new ObjectMapper();
-            response = mapper.writeValueAsString(kafkaResponse);
+            response = mapper.writeValueAsString(transactionMark);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
@@ -241,50 +246,31 @@ public class ProductFn implements StatefulFunction {
 //        sendTaskResToSeller(context, product, Enums.TaskType.UpdatePriceType);
     }
 
-//    private void sendCheckResToSeller(Context context, IncreaseStockChkProd increaseStockChkProd) {
+//    private void sendTaskResToSeller(Context context, Product product, Enums.TaskType taskType) {
 //        final Optional<Address> caller = context.caller();
 //        if (caller.isPresent()) {
+//            TaskFinish taskFinish = new TaskFinish(taskType, Enums.SendType.ProductFn, product.getProduct_id());
 //            context.send(
 //                    MessageBuilder.forAddress(caller.get())
-//                            .withCustomType(IncreaseStockChkProd.TYPE, increaseStockChkProd)
+//                            .withCustomType(TaskFinish.TYPE, taskFinish)
 //                            .build());
 //        } else {
 //            throw new IllegalStateException("There should always be a caller.");
 //        }
 //    }
 
-    private void sendTaskResToSeller(Context context, Product product, Enums.TaskType taskType) {
-        final Optional<Address> caller = context.caller();
-        if (caller.isPresent()) {
-            TaskFinish taskFinish = new TaskFinish(taskType, Enums.SendType.ProductFn, product.getProduct_id());
-            context.send(
-                    MessageBuilder.forAddress(caller.get())
-                            .withCustomType(TaskFinish.TYPE, taskFinish)
-                            .build());
-        } else {
-            throw new IllegalStateException("There should always be a caller.");
-        }
-    }
-
 //    this is special for getAllProducts of a seller
-    private void sendTaskResToSeller(Context context, Product[] products, Enums.TaskType taskType) {
-        final Optional<Address> caller = context.caller();
-        if (caller.isPresent()) {
-            TaskFinish taskFinish = new TaskFinish(taskType, Enums.SendType.ProductFn, -1L);
-            taskFinish.setProductsOfSeller(products);
-            context.send(
-                    MessageBuilder.forAddress(caller.get())
-                            .withCustomType(TaskFinish.TYPE, taskFinish)
-                            .build());
-        } else {
-            throw new IllegalStateException("There should always be a caller.");
-        }
-    }
-
-    private <T> void sendMessage(Context context, TypeName addressType, String addressId, Type<T> messageType, T messageContent) {
-        Message msg = MessageBuilder.forAddress(addressType, addressId)
-                .withCustomType(messageType, messageContent)
-                .build();
-        context.send(msg);
-    }
+//    private void sendTaskResToSeller(Context context, Product[] products, Enums.TaskType taskType) {
+//        final Optional<Address> caller = context.caller();
+//        if (caller.isPresent()) {
+//            TaskFinish taskFinish = new TaskFinish(taskType, Enums.SendType.ProductFn, -1L);
+//            taskFinish.setProductsOfSeller(products);
+//            context.send(
+//                    MessageBuilder.forAddress(caller.get())
+//                            .withCustomType(TaskFinish.TYPE, taskFinish)
+//                            .build());
+//        } else {
+//            throw new IllegalStateException("There should always be a caller.");
+//        }
+//    }
 }

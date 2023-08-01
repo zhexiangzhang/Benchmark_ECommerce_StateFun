@@ -2,7 +2,7 @@ package Marketplace.Types.State;
 
 import Common.Entity.Order;
 import Common.Entity.OrderHistory;
-import Common.Entity.StockItem;
+import Common.Entity.OrderItem;
 import Marketplace.Constant.Constants;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -31,12 +31,31 @@ public class OrderState {
     @JsonProperty("orders")
     public Map<Long, Order> orders = new HashMap<>();
 
+    // 集合
+    @JsonProperty("orderItems")
+    public Set<OrderItem> orderItems = new HashSet<>();
+
     @JsonProperty("orderHistory")
-    private TreeMap<Long, List<OrderHistory>> orderHistory = new TreeMap<>();
+    public TreeMap<Long, List<OrderHistory>> orderHistory = new TreeMap<>();
+
+    @JsonProperty("customerOrderID")
+    public Map<Long, Long> customerOrderID = new HashMap<>();
 
     @JsonIgnore
     public void addOrder(long orderId, Order order) {
         orders.put(orderId, order);
+    }
+
+    @JsonIgnore
+    public long generateCustomerNextOrderID(long customerId) {
+        if (!customerOrderID.containsKey(customerId)) {
+            customerOrderID.put(customerId, 1L);
+            return 1L;
+        } else {
+            long newId = customerOrderID.get(customerId) + 1;
+            customerOrderID.put(customerId, newId);
+            return newId;
+        }
     }
 
     @JsonIgnore
@@ -48,7 +67,11 @@ public class OrderState {
             historyList.add(orderHistory);
             this.orderHistory.put(orderId, historyList);
         }
+    }
 
+    @JsonIgnore
+    public void addOrderItem(OrderItem orderItem) {
+        orderItems.add(orderItem);
     }
 
     @JsonCreator

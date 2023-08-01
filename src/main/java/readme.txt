@@ -1,3 +1,6 @@
+docker images
+
+
 chmod +x docker-install.sh
 ./docker-install.sh
 
@@ -17,6 +20,7 @@ scp D:/Downloads/docker-compose.yml ucloud@130.225.38.155:/home/ucloud
 /usr/bin/kafka-topics --zookeeper 172.18.0.2:2181 --delete --topic addItemToCartTask
 /usr/bin/kafka-topics --zookeeper 172.18.0.2:2181 --create --topic checkoutTask --partitions 1 --replication-factor 1
 添加权限
+    E:\KU\4 Pro\benchmarkDriver
     Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
     - deleteProductTask
     - updatePriceTask
@@ -38,7 +42,6 @@ collect metrics
 
 curl -X PUT -H "Content-Type: application/vnd.e-commerce.types/UserLogin" -d '{"user_id": "1", "user_name": "Joe"}' localhost:8090/e-commerce.fns/login/1
 
-
 host A : StateFunRun on VM  (EG. ssh ucloud@130.225.38.193)
 host B : Driver run on Ubuntu  (EG. ssh ucloud@ssh.cloud.sdu.dk -p 2447)
 
@@ -46,10 +49,11 @@ host B : Driver run on Ubuntu  (EG. ssh ucloud@ssh.cloud.sdu.dk -p 2447)
    scp -P <port of host B> D:/Downloads/EventBenchmark.zip ucloud@ssh.cloud.sdu.dk:/home/ucloud/
    unzip EventBenchmark.zip (在 /home/ucloud 下)
 1. 在host B 中设置driver执行环境
-   假设当前在 /home/ucloud 下
+   假设当前在 /home/ucloud 下cd
    1.1 进入提前上传好的工作目录
       cd ../../work/799718/
    1.2 安装dotnet环境
+        chmod +x dotnet_setup.sh
       ./dotnet_setup.sh
    1.3 添加环境变量
         1.3.1 运行命令进入或创建.bash_profile文件
@@ -77,17 +81,17 @@ host B : Driver run on Ubuntu  (EG. ssh ucloud@ssh.cloud.sdu.dk -p 2447)
    7.1 在 host B 打开ssh配置文件
        nano ~/.ssh/config
    7.2 在下方新加入以下配置信息，(host A的ssh连接方式为 ssh ucloud@130.225.38.193)
-       Host myhost
-           HostName 130.225.38.193
-           User ucloud
-           LocalForward 8090 localhost:8090
+Host myhost
+   HostName 130.225.38.193
+   User ucloud
+   LocalForward 8090 localhost:8090
 
         (本地主机8090端口上的接收的流量将通过SSH连接转发到远程主机上的端口号8090)
     7.3 保存并退出
     7.4 测试
         ssh myhost
         curl -X PUT -H "Content-Type: application/vnd.e-commerce.types/UserLogin" -d '{"user_id": "1", "user_name": "Joe"}' localhost:8090/e-commerce.fns/login/1
-        (此时 host A 上的 StateFunRun应该会收到请求)
+        (此时 host A 上的 StateFunRun应该会收到请求)ls
 8. 运行driver
    8.1 进入benchmark文件夹
        cd /home/ucloud/EventBenchmark
@@ -105,3 +109,33 @@ host B : Driver run on Ubuntu  (EG. ssh ucloud@ssh.cloud.sdu.dk -p 2447)
 
 
 git commit -m "kafka added"
+
+
+5 为什么seller对status的数据和其他microservice (shipment and order)可以redentunt ==>【每次都会查询其他状态，所以用cache缓存这些状态，牺牲空间比失去顾客更重要】
+6. queryDashboard 返回ok还是整体内容 【kafka会变得很慢，payload太大，用户等三秒就离开】
+
+
+
+version: "2.1"
+services:
+ ###############################################################
+ ##    Functions service
+ ###############################################################
+
+  greeter-functions:
+    image: flink-statefun-playground-java-greeter-greeter-functions:latest
+    expose:
+      - "1108"
+
+  statefun:
+    image: apache/flink-statefun-playground:3.2.0-1.0
+    ports:
+      - "8081:8081"
+      - "8090:8090"
+      - "8091:8091"
+    depends_on:
+      - greeter-functions
+    volumes:
+      - ./module.yaml:/module.yaml
+      #- ./statefun-config/module.yaml:/module.yaml
+

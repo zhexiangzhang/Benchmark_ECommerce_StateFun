@@ -25,6 +25,8 @@ public class Order {
     private long customerId;
     @JsonProperty("status")
     private Enums.OrderStatus status;
+    @JsonProperty("invoiceNumber")
+    private String invoiceNumber;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -60,11 +62,15 @@ public class Order {
     @JsonProperty("countITems")
     private int countItems;
     @JsonProperty("totalAmount")
-    private BigDecimal totalAmount;
+    private double totalAmount;
+    @JsonProperty("totalFreight")
+    private double totalFreight;
+    @JsonProperty("totalIncentive")
+    private double totalIncentive;
     @JsonProperty("totalInvoice")
-    private BigDecimal totalInvoice;
+    private double totalInvoice;
     @JsonProperty("totalItems")
-    private BigDecimal totalItems;
+    private double totalItems;
     @JsonProperty("data")
     private String data;
 

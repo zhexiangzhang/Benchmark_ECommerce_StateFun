@@ -1,18 +1,13 @@
 package Marketplace.Constant;
 
 public class Enums {
-    public enum TaskType
-    {
-        //
-        AddProductType,
-        UpdatePriceType,
-        GetAllProductsType,
-        DeleteProductType,
-        // OrderFn
-        AttemptReservationsType,
-        ConfirmReservationsType,
-        CancelReservationsType
-    };
+//    public enum TaskType
+//    {
+//        AddProductType,
+//        UpdatePriceType,
+//        GetAllProductsType,
+//        DeleteProductType
+//    };
 
     public enum SendType
     {
@@ -36,13 +31,14 @@ public class Enums {
         // OrderFn
         CREATED,
         PROCESSING,
-        CANCLED,
+//        CANCLED, // wrong
         INVOICED,
         SHIPPED,
         DELIVERED,
         PAYMENT_FAILED,
-        PAYMENT_SUCCESS,
-        PAYMENT_PROCESSED
+        PAYMENT_PROCESSED,
+        READY_FOR_SHIPMENT,
+        IN_TRANSIT
     };
 
     public enum PackageStatus
@@ -56,13 +52,29 @@ public class Enums {
     {
         notify_failed_payment,
         notify_success_payment,
-        notify_shipment,
-        notfiy_delivered
+//        notify_shipment,
+//        notfiy_delivered,
+        notify_fail_checkout
     }
 
     public enum ShipmentStatus
     {
+        APPROVED,
         CONCLUDED,
         DELIVERY_IN_PROGRESS
+    }
+
+    public enum PaymentType
+    {
+        CREDIT_CARD,
+        DEBIT_CARD,
+        BOLETO,
+        VOUCHER
+    }
+
+    public enum TransactionType
+    {
+        checkoutTask,
+        queryDashboardTask
     }
 }

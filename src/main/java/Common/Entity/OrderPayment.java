@@ -2,25 +2,48 @@ package Common.Entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @Setter
 @Getter
 public class OrderPayment {
     @JsonProperty("orderId") private String orderId;
-    @JsonProperty("cardHolderName") private String cardHolderName;
-    @JsonProperty("cardNumber") private String cardNumber;
-    @JsonProperty("cardExpiration") private String cardExpiration;
+
+    // e.g.  1 - credit card  2 - coupon
+    @JsonProperty("sequential") private int sequential;
+
+    // number of times the credit card is charged (usually once a month)
+    @JsonProperty("installments") public int installments;
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonProperty("createdDate") private LocalDateTime createdDate;
+
+    // respective to this line (ie. coupon)
+    @JsonProperty("value") private double value;
+
+    // vouchers dont need to have this field filled
+    @JsonProperty("status") private String status;
 
     @JsonCreator
-    public OrderPayment(@JsonProperty("orderId") String orderId,
-                        @JsonProperty("cardHolderName") String cardHolderName,
-                        @JsonProperty("cardNumber") String cardNumber,
-                        @JsonProperty("cardExpiration") String cardExpiration) {
+    public OrderPayment(
+            @JsonProperty("orderId") String orderId,
+            @JsonProperty("sequential") int sequential,
+            @JsonProperty("installments") int installments,
+            @JsonProperty("createdDate") LocalDateTime createdDate,
+            @JsonProperty("value") double value,
+            @JsonProperty("status") String status) {
         this.orderId = orderId;
-        this.cardHolderName = cardHolderName;
-        this.cardNumber = cardNumber;
-        this.cardExpiration = cardExpiration;
+        this.sequential = sequential;
+        this.installments = installments;
+        this.createdDate = createdDate;
+        this.value = value;
+        this.status = status;
     }
 }
