@@ -56,10 +56,6 @@ public class SellerFn implements StatefulFunction {
             else if (message.is(IncreaseStock.TYPE)) {
                 onIncrStockAsyncBegin(context, message);
             }
-            // stock / product ---> seller (the result of async task)
-//            else if (message.is(TaskFinish.TYPE)) {
-//                onAsyncTaskFinish(context, message);
-//            }
             // driver ----> query dashboard
             else if (message.is(QueryDashboard.TYPE)) {
                 onQueryDashboard(context, message);
@@ -203,7 +199,10 @@ public class SellerFn implements StatefulFunction {
 
         long sellerID = sellerState.getSeller().getId();
         int tid = message.as(QueryDashboard.TYPE).getTid();
-
+//        logger.info("[receive] {tid=" + tid + "} query dashboard, sellerFn " + context.self().id());
+        String log = getPartionText(context.self().id())
+                + "query dashboard [receive], " + "tid : " + tid + "\n";
+        printLog(log);
         // count_items, total_amount, total_freight, total_incentive, total_invoice, total_items
         OrderSellerView orderSellerView = new OrderSellerView(
                 sellerID,
@@ -241,6 +240,11 @@ public class SellerFn implements StatefulFunction {
                 Enums.TransactionType.queryDashboardTask.toString(),
                 context.self().id(),
                 sellerID, tid, context.self().id(), "success");
+
+        String log_ = getPartionText(context.self().id())
+                + "query dashboard success, " + "tid : " + tid + "\n";
+        printLog(log_);
+//        logger.info("[success] {tid=" + tid + "} query dashboard, sellerFn " + context.self().id());
     }
 
     private void UpdateOrderStatus(Context context, Message message) {

@@ -48,6 +48,14 @@ public class ShipmentProxyFn implements StatefulFunction {
         return context.done();
     }
 
+    private void printLog(String log) {
+        System.out.println(log);
+    }
+
+    private String getPartionText(String id) {
+        return String.format(" [ ShipmentProxy partitionId %s ] ", id);
+    }
+
     private void onUpdateShipments(Context context, Message message) {
         UpdateShipments updateShipments = message.as(UpdateShipments.TYPE);
         int tid = updateShipments.getTid();
@@ -55,7 +63,10 @@ public class ShipmentProxyFn implements StatefulFunction {
 
         int partitionNum = Constants.nShipmentPartitions;
         shipmentProxyState.addTask(tid, partitionNum);
-        logger.info("[receive] ShipmentProxyFn: Updated shipmentProxyState, tid = " + tid);
+//        logger.info("[receive] {tid=" + tid + "} updated delivery");
+        String log_ = getPartionText(context.self().id())
+                + "updated delivery [receive], " + "tid : " + tid + "\n";
+        printLog(log_);
 
         // 循环partitionNum次，每次发送一个UpdateShipment
         for (int i = 0; i < partitionNum; i++) {
@@ -79,10 +90,10 @@ public class ShipmentProxyFn implements StatefulFunction {
 
         shipmentProxyState.subTaskDone(tid);
 
-        logger.info("ShipmentProxyFn: Received ack from shipment, tid = " + tid + "remain task = " + shipmentProxyState.getTaskList().get(tid));
+//        logger.info("ShipmentProxyFn: Received ack from shipment, tid = " + tid + "remain task = " + shipmentProxyState.getTaskList().get(tid));
         if (shipmentProxyState.isTaskDone(tid)) {
             shipmentProxyState.removeTask(tid);
-            logger.info("ShipmentProxyFn: All partitions acked, tid = " + tid);
+//            logger.info("ShipmentProxyFn: All partitions acked, tid = " + tid);
 
             String response = "";
             try {
@@ -103,6 +114,10 @@ public class ShipmentProxyFn implements StatefulFunction {
                             .withUtf8Key(context.self().id())
                             .withUtf8Value(response)
                             .build());
+            String log_ = getPartionText(context.self().id())
+                    + "updated delivery success, " + "tid : " + tid + "\n";
+            printLog(log_);
+//            logger.info("[success] {tid=" + tid + "} updated delivery");
         }
         context.storage().set(PROXYSTATE, shipmentProxyState);
     }

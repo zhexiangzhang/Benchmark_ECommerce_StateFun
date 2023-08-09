@@ -153,17 +153,19 @@ public class OrderFn implements StatefulFunction {
         }
 
         // log
-        String log = getPartionText(context.self().id())
-                + "OrderFn: attempt reservation, message sent to stock, customerId: "
-                + customerId + "\n";
-        showLogPrt(log);
+//        String log = getPartionText(context.self().id())
+//                + "OrderFn: attempt reservation, message sent to stock, customerId: "
+//                + customerId + "\n";
+//        showLogPrt(log);
     }
 
 
 //    ====================================================================================
 //                  handle checkout response 【receive message from stock】
 //    ====================================================================================
-
+    private void printLog(String log) {
+        System.out.println(log);
+    }
     private void ReserveStockResult(Context context, Message message) {
 
         // get state and message
@@ -190,15 +192,19 @@ public class OrderFn implements StatefulFunction {
             Checkout checkoutFailed = new Checkout(checkout.getCreatedAt(), checkout.getCustomerCheckout(), itemsFailedResv);
 
             if (itemsSuccessResv.size() == 0) {
-
+                int tid = checkout.getCustomerCheckout().getInstanceId();
                 // all the items are unavailable, send transaction mark to driver, notify customer
                 Utils.notifyTransactionComplete(context,
                         Enums.TransactionType.checkoutTask.toString(),
                         String.valueOf(customerId),
                         customerId,
-                        checkout.getCustomerCheckout().getInstanceId(),
+                        tid,
                         String.valueOf(customerId),
                         "fail");
+//                logger.info("[success] {tid=" + tid + "} checkout (fail), orderFn " + context.self().id());
+                String log_ = getPartionText(context.self().id())
+                        + "checkout fail, " + "tid : " + tid + "\n";
+                printLog(log_);
 
                 Utils.sendMessage(context,
                         CustomerFn.TYPE,
@@ -493,6 +499,6 @@ public class OrderFn implements StatefulFunction {
 
         String log = getPartionText(context.self().id())
                 + "update order status, orderId: " + orderId + ", oldStatus: " + oldStatus + ", newStatus: " + status + "\n";
-        showLog(log);
+//        showLog(log);
     }
 }

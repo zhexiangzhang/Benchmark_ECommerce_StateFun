@@ -3,17 +3,119 @@ spec:
   functions: e-commerce.fns/*
 #  urlPathTemplate: http://e-commerce-functions:1108/
   urlPathTemplate: http://host.docker.internal:1108/
+#  urlPathTemplate: http://localhost:1108/
   transport:
     type: io.statefun.transports.v1/async
+#---
+#kind: io.statefun.playground.v1/ingress
+#spec:
+#  port: 8090
 ---
-kind: io.statefun.playground.v1/ingress
+kind: io.statefun.kafka.v1/ingress
 spec:
-  port: 8090
+  id: e-commerce.fns/login
+  address: kafka:9092
+  consumerGroupId: my-group-id
+  topics:
+    - topic: login
+      valueType: e-commerce.types/UserLogin
+      targets:
+        - e-commerce.fns/login
+---
+kind: io.statefun.kafka.v1/ingress
+spec:
+  id: e-commerce.fns/customer
+  address: kafka:9092
+  consumerGroupId: my-group-id
+  topics:
+    - topic: customer
+      valueType: e-commerce.types/InitCustomer
+      targets:
+        - e-commerce.fns/customer
+---
+kind: io.statefun.kafka.v1/ingress
+spec:
+  id: e-commerce.fns/cart
+  address: kafka:9092
+  consumerGroupId: my-group-id
+  topics:
+    - topic: customerSession
+      valueType: e-commerce.types/CustomerSession
+      targets:
+        - e-commerce.fns/cart
+#    - topic: addToCart
+#      valueType: e-commerce.types/AddToCart
+#      targets:
+#        - e-commerce.fns/cart
+#    - topic: checkout
+#      valueType: e-commerce.types/CheckoutCart
+#      targets:
+#        - e-commerce.fns/cart
+#    - topic: clearCart
+#      valueType: e-commerce.types/Cleanup
+#      targets:
+#        - e-commerce.fns/cart
+---
+kind: io.statefun.kafka.v1/ingress
+spec:
+  id: e-commerce.fns/seller
+  address: kafka:9092
+  consumerGroupId: my-group-id
+  topics:
+    - topic: seller
+      valueType: e-commerce.types/InitSeller
+      targets:
+        - e-commerce.fns/seller
+    - topic: queryDashboard
+      valueType: e-commerce.types/QueryDashboard
+      targets:
+        - e-commerce.fns/seller
+---
+kind: io.statefun.kafka.v1/ingress
+spec:
+  id: e-commerce.fns/product
+  address: kafka:9092
+  consumerGroupId: my-group-id
+  topics:
+    - topic: product
+      valueType: e-commerce.types/AddProduct
+      targets:
+        - e-commerce.fns/product
+    - topic: priceUpdate
+      valueType: e-commerce.types/UpdateSinglePrice
+      targets:
+        - e-commerce.fns/product
+    - topic: productDelete
+      valueType: e-commerce.types/DeleteProduct
+      targets:
+        - e-commerce.fns/product
+---
+kind: io.statefun.kafka.v1/ingress
+spec:
+  id: e-commerce.fns/stock
+  address: kafka:9092
+  consumerGroupId: my-group-id
+  topics:
+    - topic: stock
+      valueType: e-commerce.types/IncreaseStock
+      targets:
+        - e-commerce.fns/stock
+---
+kind: io.statefun.kafka.v1/ingress
+spec:
+  id: e-commerce.fns/shipmentProxy
+  address: kafka:9092
+  consumerGroupId: my-group-id
+  topics:
+    - topic: updateDelivery
+      valueType: e-commerce.types/UpdateShipments
+      targets:
+        - e-commerce.fns/shipmentProxy
 ---
 kind: io.statefun.kafka.v1/egress
 spec:
   id: e-commerce.fns/kafkaSink
-  address: kafka:29092
+  address: kafka:9092
   deliverySemantic:
     type: exactly-once
     transactionTimeout: 15min

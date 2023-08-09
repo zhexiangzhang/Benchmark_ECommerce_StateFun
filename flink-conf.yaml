@@ -28,8 +28,8 @@ classloader.parent-first-patterns.additional: org.apache.flink.statefun;org.apac
 #==============================================================================
 
 # Uncomment the below to enable checkpointing for your application
-execution.checkpointing.mode: EXACTLY_ONCE
-execution.checkpointing.interval: 5sec
+#execution.checkpointing.mode: EXACTLY_ONCE
+#execution.checkpointing.interval: 5sec
 
 restart-strategy: fixed-delay
 restart-strategy.fixed-delay.attempts: 2147483647
@@ -64,5 +64,5 @@ execution.savepoint.ignore-unclaimed-state: true
 #==============================================================================
 # parallelism configurations
 #==============================================================================
-taskmanager.numberOfTaskSlots: 4
-parallelism.default: 6
+#taskmanager.numberOfTaskSlots: 4
+#parallelism.default: 6

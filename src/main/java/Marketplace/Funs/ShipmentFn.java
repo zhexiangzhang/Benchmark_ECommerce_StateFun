@@ -185,6 +185,15 @@ public class ShipmentFn implements StatefulFunction {
                 transactionID,
                 String.valueOf(customerId),
                 "success");
+
+        String log2 = getPartionText(context.self().id())
+                + "checkout success, " + "tid : " + transactionID + "\n";
+        printLog(log2);
+//        logger.info("[success] {tid=" + transactionID + "} checkout (success), shipmentFn " + context.self().id());
+    }
+
+    private void printLog(String log) {
+        System.out.println(log);
     }
 
     private void onGetPendingPackages(Context context, Message message) {
@@ -204,7 +213,7 @@ public class ShipmentFn implements StatefulFunction {
                 .collect(Collectors.joining("\n"));
 
         String log = getPartionText(context.self().id()) + "PendingPackages: \n" + pendingPackagesStr + "\n";
-        logger.info(log);
+//        logger.info(log);
     }
 
     /**
@@ -223,30 +232,14 @@ public class ShipmentFn implements StatefulFunction {
         Map<Long, List<PackageItem>> packages = shipmentState.getPackages();
 
         String log = getPartionText(context.self().id()) + "UpdateShipment in, packages have : " + packages + "\n";
-        showLog(log);
+//        showLog(log);
 
         // contains the minimum shipment ID for each seller.
         // 对应 每个卖家（sellerId）对应的最小发货单号（shipmentId）
         Map<Long, Long> q = shipmentState.GetOldestOpenShipmentPerSeller();
-//        Map<Long, Long> q = packages.values().stream()
-//                .flatMap(List::stream)
-//                .filter(p -> p.getPackageStatus().equals(Enums.PackageStatus.SHIPPED))
-//                .collect(Collectors.groupingBy(PackageItem::getSellerId,
-//                        Collectors.minBy(Comparator.comparingLong(PackageItem::getShipmentId))))
-//                .entrySet().stream()
-//                .filter(entry -> entry.getValue().isPresent())
-//                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get().getShipmentId()));
-
-//        String log_1 = getPartionText(context.self().id())
-//                + "UpdateShipment in, Shipments to update: (sellerID-MinShipmentID) " + q + "\n";
-//        showLog(log_1);
 
         for (Map.Entry<Long, Long> kv : q.entrySet()) {
             // 获取相应的包裹列表
-//            List<PackageItem> packagesForSeller = packages.get(kv.getValue()).stream()
-//                    .filter(p -> p.getSellerId() == kv.getKey() && p.getPackageStatus().equals(Enums.PackageStatus.SHIPPED))
-//                    .collect(Collectors.toList());
-//            futures.add(updatePackageDelivery(packagesForSeller, context));
             List<PackageItem> packagesForSeller = shipmentState.GetShippedPackagesByShipmentIDAndSeller(kv.getKey(), kv.getValue());
             updatePackageDelivery(context, packagesForSeller, kv.getKey());
         }

@@ -52,18 +52,9 @@ public class ProductFn implements StatefulFunction {
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
         try{
-            // seller --> product (increase stock)
-//            if (message.is(IncreaseStock.TYPE)) {
-//                onIncreaseStockAsyncCheck(context, message);
-//                // client --> product (get product)
-//            }
             if (message.is(GetProduct.TYPE)) {
                 onGetProduct(context, message);
             }
-            // seller --> product (getAllProducts of seller)
-//            else if (message.is(GetAllProducts.TYPE)) {
-//                onGetAllProducts(context, message);
-//            }
             // seller --> product (add product)
             else if (message.is(AddProduct.TYPE)) {
                 onAddProduct(context, message);
@@ -100,29 +91,6 @@ public class ProductFn implements StatefulFunction {
         return context.storage().get(PRODUCTSTATE).orElse(new ProductState());
     }
 
-//    private void onIncreaseStockAsyncCheck(Context context, Message message) {
-//        IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
-//        Long productId = increaseStock.getStockItem().getProduct_id();
-//        ProductState productState = getProductState(context);
-//        Product product = productState.getProduct(productId);
-//        IncreaseStockChkProd increaseStockChkProd = new IncreaseStockChkProd(increaseStock, product);
-//        sendCheckResToSeller(context, increaseStockChkProd);
-//    }
-
-//    private void onGetAllProducts(Context context, Message message) {
-//        ProductState productState = getProductState(context);
-//        GetAllProducts getAllProducts = message.as(GetAllProducts.TYPE);
-//        Long sellerId = getAllProducts.getSeller_id();
-//        Product[] products = productState.getProductsOfSeller(sellerId);
-//        sendTaskResToSeller(context, products, Enums.TaskType.GetAllProductsType);
-//        String log = String.format(getPartionTextInline(context.self().id())
-//                + " #sub-task# "
-//                + "get all products belongs to seller success, "
-//                + "number of products = " + (products.length)
-//                , sellerId);
-//        showLog(log);
-//    }
-
     private void onGetProduct(Context context, Message message) {
         ProductState productState = getProductState(context);
         GetProduct getProduct = message.as(GetProduct.TYPE);
@@ -141,7 +109,7 @@ public class ProductFn implements StatefulFunction {
                 + product.toString()
                 + "\n");
 
-        showLog(log);
+//        showLog(log);
     }
 
     private void onAddProduct(Context context, Message message) {
@@ -162,6 +130,11 @@ public class ProductFn implements StatefulFunction {
         DeleteProduct deleteProduct = message.as(DeleteProduct.TYPE);
         Long productId = deleteProduct.getProduct_id();
 
+
+        String log_ = getPartionText(context.self().id())
+                + "delete product [receive], " + "tid : " + deleteProduct.getInstanceId() + "\n";
+        printLog(log_);
+//        logger.info(" {tid=" + deleteProduct.getInstanceId() + "} delete product, productFn " + context.self().id());
         ProductState productState = getProductState(context);
         Product product = productState.getProduct(productId);
         if (product == null) {
@@ -192,6 +165,11 @@ public class ProductFn implements StatefulFunction {
         UpdateSinglePrice updatePrice = message.as(UpdateSinglePrice.TYPE);
         Long productId = updatePrice.getProductId();
 
+//        logger.info("[receive] {tid=" + updatePrice.getInstanceId() + "} update product, productFn " + context.self().id());
+        String log_ = getPartionText(context.self().id())
+                + "update price [receive], " + "tid : " + updatePrice.getInstanceId() + "\n";
+        printLog(log_);
+
         ProductState productState = getProductState(context);
         Product product = productState.getProduct(productId);
 
@@ -213,16 +191,9 @@ public class ProductFn implements StatefulFunction {
                     + "product Id : " + product.getProduct_id()
                     + " new price : " + product.getPrice()
                     + "\n";
-            showLog(log);
+//            showLog(log);
         }
 
-//        context.send(
-//                KafkaEgressMessage.forEgress(KFK_EGRESS)
-//                        .withTopic("updatePriceTask")
-//                        .withUtf8Key(context.self().id())
-//                        .withUtf8Value("update product done (ID: " + productId + ")")
-//                        .build());
-//        kafka 发送一个jason数据
         int tid = updatePrice.getInstanceId();
         long sellerId = updatePrice.getSellerId();
         // sellerID转换成string
@@ -235,42 +206,17 @@ public class ProductFn implements StatefulFunction {
             e.printStackTrace();
         }
 
-        System.out.println(getPartionText(context.self().id())+" send updatePrice response to kafka: " + response);
+//        System.out.println(getPartionText(context.self().id())+" send updatePrice response to kafka: " + response);
         context.send(
                 KafkaEgressMessage.forEgress(KFK_EGRESS)
                         .withTopic("updatePriceTask")
                         .withUtf8Key(context.self().id())
                         .withUtf8Value(response)
                         .build());
-
+//        logger.info("[success] {tid=" + updatePrice.getInstanceId() + "} update product, productFn " + context.self().id());
 //        sendTaskResToSeller(context, product, Enums.TaskType.UpdatePriceType);
+        String log = getPartionText(context.self().id())
+                + "update price [success], " + "tid : " + updatePrice.getInstanceId() + "\n";
+        printLog(log);
     }
-
-//    private void sendTaskResToSeller(Context context, Product product, Enums.TaskType taskType) {
-//        final Optional<Address> caller = context.caller();
-//        if (caller.isPresent()) {
-//            TaskFinish taskFinish = new TaskFinish(taskType, Enums.SendType.ProductFn, product.getProduct_id());
-//            context.send(
-//                    MessageBuilder.forAddress(caller.get())
-//                            .withCustomType(TaskFinish.TYPE, taskFinish)
-//                            .build());
-//        } else {
-//            throw new IllegalStateException("There should always be a caller.");
-//        }
-//    }
-
-//    this is special for getAllProducts of a seller
-//    private void sendTaskResToSeller(Context context, Product[] products, Enums.TaskType taskType) {
-//        final Optional<Address> caller = context.caller();
-//        if (caller.isPresent()) {
-//            TaskFinish taskFinish = new TaskFinish(taskType, Enums.SendType.ProductFn, -1L);
-//            taskFinish.setProductsOfSeller(products);
-//            context.send(
-//                    MessageBuilder.forAddress(caller.get())
-//                            .withCustomType(TaskFinish.TYPE, taskFinish)
-//                            .build());
-//        } else {
-//            throw new IllegalStateException("There should always be a caller.");
-//        }
-//    }
 }

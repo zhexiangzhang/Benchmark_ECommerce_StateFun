@@ -102,7 +102,7 @@ public class PaymentFn implements StatefulFunction {
 
         String log = getPartionText(context.self().id())
                 + " asking for payment for order: " + invoice.getOrderID();
-        showLogPrt(log);
+//        showLogPrt(log);
 
         long orderId = invoice.getOrderID();
         LocalDateTime now = LocalDateTime.now();
@@ -123,7 +123,7 @@ public class PaymentFn implements StatefulFunction {
 
         String log_ = getPartionText(context.self().id())
                 + "contact ESP finished, paymentResult for order: " + uniqueOrderID + " is " + paymentResult;
-        showLogPrt(log_);
+//        showLogPrt(log_);
 
         Enums.OrderStatus orderStatus =
                 paymentResult ? Enums.OrderStatus.PAYMENT_PROCESSED : Enums.OrderStatus.PAYMENT_FAILED;
@@ -227,12 +227,21 @@ public class PaymentFn implements StatefulFunction {
                     transactionID,
                     String.valueOf(customerId),
                     "fail");
+
+            String log2 = getPartionText(context.self().id())
+                    + "checkout fail, " + "tid : " + transactionID + "\n";
+            printLog(log2);
+//            logger.info("[success] {tid=" + transactionID + "} checkout (fail), paymentFn " + context.self().id());
+
         }
 
         String log__ = getPartionText(context.self().id())
                 + "send payment paymentResult to stock for order: " + uniqueOrderID
                 + " sending finished \n";
-        showLogPrt(log__);
+//        showLogPrt(log__);
     }
 
+    private void printLog(String log) {
+        System.out.println(log);
+    }
 }

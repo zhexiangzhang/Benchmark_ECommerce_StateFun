@@ -55,7 +55,7 @@ public class CustomerFn implements StatefulFunction {
 //                onCleanup(context);
 //            }
             else {
-                System.out.println("do nothing");
+//                System.out.println("do nothing");
             }
         } catch (Exception e) {
             System.out.println("Exception in CustomerFn !!!!!!!!!!!!!!!!");
@@ -158,7 +158,7 @@ public class CustomerFn implements StatefulFunction {
         if (order != null) {
             log += "order ID: " + order.toString() + "\n";
         }
-        showLog(log);
+//        showLog(log);
     }
 
     private void onhandleDeliveryNotification(Context context, Message message) {

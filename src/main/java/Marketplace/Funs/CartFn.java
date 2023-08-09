@@ -10,6 +10,8 @@ import Common.Entity.Checkout;
 import Marketplace.Constant.Constants;
 import Marketplace.Types.MsgToCartFn.*;
 import Marketplace.Types.State.CartState;
+import Marketplace.Types.State.CustomerState;
+import org.apache.commons.math3.analysis.function.Add;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
 
@@ -41,11 +43,13 @@ public class CartFn implements StatefulFunction {
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
         try {
             // client ---> cart (add some item to cart)
-            if (message.is(AddToCart.TYPE)) { onAddToCart(context, message); }
-            // client ---> cart (send checkout request)
-            else if (message.is(CheckoutCart.TYPE)) { onNotifyCheckout(context, message); }
-            // client ---> cart (clear cart)
-            else if (message.is(Cleanup.TYPE)) { onCleanup(context); }
+            if(message.is(CustomerSession.TYPE)) { onCustomerSession(context, message); }
+
+//            if (message.is(AddToCart.TYPE)) { onAddToCart(context, message); }
+//            // client ---> cart (send checkout request)
+//            else if (message.is(CheckoutCart.TYPE)) { onNotifyCheckout(context, message); }
+//             client ---> cart (clear cart)
+//            else if (message.is(Cleanup.TYPE)) { onCleanup(context); }
             // order ---> cart (send checkout result)
             else if (message.is(GetCart.TYPE)) { onGetCart(context); }
         } catch (Exception e) {
@@ -55,44 +59,104 @@ public class CartFn implements StatefulFunction {
         return context.done();
     }
 
-    private void onAddToCart(Context context, Message message) {
+    private void printLog(String log) {
+        System.out.println(log);
+    }
+
+    private void onCustomerSession(Context context, Message message) {
+        CustomerSession customerSession = message.as(CustomerSession.TYPE);
+        String log = getPartionText(context.self().id())
+                + "customer session [receive] \n";
+        printLog(log);
+
+        String type = customerSession.getType();
+        if (type.equals("addToCart")) {
+            onAddToCart(context, customerSession.getAddToCart());
+        } else if (type.equals("checkout")) {
+            onNotifyCheckout(context, customerSession.getCustomerCheckout());
+        } else if (type.equals("clearCart")) {
+            onCleanup(context);
+        }
+    }
+
+    private void onAddToCart(Context context, AddToCart addToCart) {
         CartState cartState = getCartState(context);
-        AddToCart addToCart = message.as(AddToCart.TYPE);
+//        AddToCart addToCart = message.as(AddToCart.TYPE);
+
+        String log = getPartionText(context.self().id())
+                + "add to cart [receive] \n";
+        printLog(log);
 
         BasketItem item = new BasketItem(
-            addToCart.getSellerId(),
-            addToCart.getProductId(),
-            addToCart.getProductName(),
-            addToCart.getUnitPrice(),
-            addToCart.getFreightValue(),
-            addToCart.getQuantity(),
-            addToCart.getVouchers()
+                addToCart.getSellerId(),
+                addToCart.getProductId(),
+                addToCart.getProductName(),
+                addToCart.getUnitPrice(),
+                addToCart.getFreightValue(),
+                addToCart.getQuantity(),
+                addToCart.getVouchers()
         );
 
         cartState.addItem(item.getProductId(), item);
         context.storage().set(CARTSTATE, cartState);
 
-        String log = String.format(getPartionText(context.self().id()) + "Item {%s} add to cart success\n", item.getProductId());
-        showLog(log);
+//        String log = String.format(getPartionText(context.self().id()) + "Item {%s} add to cart success\n", item.getProductId());
+//        showLog(log);
+        String log_ = getPartionText(context.self().id())
+                + "add to cart [success] \n";
+        printLog(log_);
     }
+//    private void onAddToCart(Context context, Message message) {
+//        CartState cartState = getCartState(context);
+//        AddToCart addToCart = message.as(AddToCart.TYPE);
+//
+//        String log = getPartionText(context.self().id())
+//                + "add to cart [receive] \n";
+//        printLog(log);
+//
+//        BasketItem item = new BasketItem(
+//            addToCart.getSellerId(),
+//            addToCart.getProductId(),
+//            addToCart.getProductName(),
+//            addToCart.getUnitPrice(),
+//            addToCart.getFreightValue(),
+//            addToCart.getQuantity(),
+//            addToCart.getVouchers()
+//        );
+//
+//        cartState.addItem(item.getProductId(), item);
+//        context.storage().set(CARTSTATE, cartState);
+//
+////        String log = String.format(getPartionText(context.self().id()) + "Item {%s} add to cart success\n", item.getProductId());
+////        showLog(log);
+//        String log_ = getPartionText(context.self().id())
+//                + "add to cart [success] \n";
+//        printLog(log_);
+//    }
 
-    private void onNotifyCheckout(Context context, Message message) {
+    private void onNotifyCheckout(Context context, CustomerCheckout customerCheckout) {
+//    private void onNotifyCheckout(Context context, Message message) {
 
         // get the state and message
         CartState cartState = getCartState(context);
-        CustomerCheckout customerCheckout = message.as(CheckoutCart.TYPE).getCustomerCheckout();
+//        CustomerCheckout customerCheckout = message.as(CheckoutCart.TYPE).getCustomerCheckout();
 
         int transactionId = customerCheckout.getInstanceId();
+//        logger.info("[receive] {tid=" + transactionId + "} checkout, cartFn " + context.self().id());
+        String log_ = getPartionText(context.self().id())
+                + "checkout [receive], " + "tid : " + transactionId + "\n";
+        printLog(log_);
+
         String cartId = context.self().id();
         String customerId = String.valueOf(customerCheckout.getCustomerId());
 
         cartState.setCurrentTransactionId(transactionId);
 
-        String log_ = getPartionText(context.self().id())
-                + "checkout request received\n"
-                + "cartId: " + cartId + "\n"
-                + "customerId: " + customerId + "\n"
-                + "instanceId: " + customerCheckout.getInstanceId() + "\n";
+//        String log_ = getPartionText(context.self().id())
+//                + "checkout request received\n"
+//                + "cartId: " + cartId + "\n"
+//                + "customerId: " + customerId + "\n"
+//                + "instanceId: " + customerCheckout.getInstanceId() + "\n";
 
         if (cartState.getStatus() == CartState.Status.CHECKOUT_SENT ){
             String log = getPartionText(context.self().id())
@@ -127,10 +191,10 @@ public class CartFn implements StatefulFunction {
         Seal(cartState, true);
 
         context.storage().set(CARTSTATE, cartState);
-
-        String log = getPartionText(context.self().id())
-                + "checkout message send........\n";
-        showLogPrt(log);
+//
+//        String log = getPartionText(context.self().id())
+//                + "checkout message send........\n";
+//        showLogPrt(log);
     }
 
     private void Seal(CartState cartState, boolean cleanItems) {
@@ -145,7 +209,7 @@ public class CartFn implements StatefulFunction {
         CartState cartState = getCartState(context);
         // 删除cartState这个对象
         context.storage().remove(CARTSTATE);
-        logger.info(String.format("clear cart {%s} success", context.self().id()));
+//        logger.info(String.format("clear cart {%s} success", context.self().id()));
     }
 
     private void onGetCart(Context context) {

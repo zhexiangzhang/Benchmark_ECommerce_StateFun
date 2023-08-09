@@ -122,7 +122,7 @@ public class StockFn implements StatefulFunction {
                             + "deleteItem success (stock part)\n"
                             + "productId: %s\n"
                     , productId);
-            showLog(log);
+//            showLog(log);
         }
 
         int tid = deleteProduct.getInstanceId();
@@ -136,13 +136,17 @@ public class StockFn implements StatefulFunction {
             e.printStackTrace();
         }
 
-        System.out.println(getPartionText(context.self().id())+" send delete product response to kafka: " + response);
+//        System.out.println(getPartionText(context.self().id())+" send delete product response to kafka: " + response);
         context.send(
                 KafkaEgressMessage.forEgress(KFK_EGRESS)
                         .withTopic("deleteProductTask")
                         .withUtf8Key(context.self().id())
                         .withUtf8Value(response)
                         .build());
+        String log_ = getPartionText(context.self().id())
+                + "delete product success, " + "tid : " + deleteProduct.getInstanceId() + "\n";
+        printLog(log_);
+//        logger.info("[success] {tid=" + deleteProduct.getInstanceId() + "} delete product, stockFn " + context.self().id());
     }
 
     private void onHandleCheckoutResv(Context context, Message message) {
@@ -173,7 +177,7 @@ public class StockFn implements StatefulFunction {
             String log = partitionText + " #sub-task#, attempt reservation request failed as product not active\n"
                     + productIdText
                     + ", " + "customerId: " + customerId + "\n";
-            showLog(log);
+//            showLog(log);
             return Enums.ItemStatus.DELETED;
         }
         if (stockItem.getQty_available() - stockItem.getQty_reserved() < quantity) {
@@ -183,7 +187,7 @@ public class StockFn implements StatefulFunction {
                     + ", " + "qty_available: " + stockItem.getQty_available()
                     + ", " + "need: " + quantity + "\n";
 
-            showLog(log);
+//            showLog(log);
             return Enums.ItemStatus.OUT_OF_STOCK;
         } else {
             stockItem.setQty_reserved(stockItem.getQty_reserved() + quantity);
@@ -194,7 +198,7 @@ public class StockFn implements StatefulFunction {
                     + ", " + "customerId: " + customerId
                     + ", " + "qty_available: " + stockItem.getQty_available()
                     + ", need: " + quantity + "\n";
-            showLog(log);
+//            showLog(log);
             return Enums.ItemStatus.IN_STOCK;
         }
     }
@@ -230,7 +234,7 @@ public class StockFn implements StatefulFunction {
 
         String log = String.format(getPartionText(context.self().id())
                 + "StockFn apply PaymentResv, productId: %s, uniqueOrderId: %s", productId, uniqueId);
-        showLog(log);
+//        showLog(log);
 
         if (orderStatus == Enums.OrderStatus.PAYMENT_PROCESSED) {
 //            NOTE: NOT call onConfirmResvReq here
