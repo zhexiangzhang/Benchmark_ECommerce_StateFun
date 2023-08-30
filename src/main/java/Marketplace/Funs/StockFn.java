@@ -219,6 +219,9 @@ public class StockFn implements StatefulFunction {
         // increase order count
         StockState stockState = getStockState(context);
         StockItem stockItem = stockState.getItem(productId);
+        // 之前忘写了
+        stockItem.setQty_reserved(stockItem.getQty_reserved() - quantity);
+        stockItem.setQty_available(stockItem.getQty_available() - quantity);
         stockItem.setOrder_count(stockItem.getOrder_count() + 1);
         stockItem.setUpdatedAt(LocalDateTime.now());
         context.storage().set(STOCKSTATE, stockState);
@@ -244,3 +247,9 @@ public class StockFn implements StatefulFunction {
         }
     }
 }
+
+
+
+
+
+

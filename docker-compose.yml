@@ -6,10 +6,10 @@ services:
   #    Functions service
   ###############################################################
 
-  e-commerce-functions:
-    build:
-      dockerfile: Dockerfile
-      context: .
+#  e-commerce-functions:
+#    build:
+#      dockerfile: Dockerfile
+#      context: .
 
 #    expose:
 #      - "1108"
@@ -98,38 +98,6 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_MIN_INSYNC_REPLICAS: 1
 
-
-#  zookeeper:
-#    image: confluentinc/cp-zookeeper:5.4.3
-#    container_name: zookeeper
-#    environment:
-#      ZOOKEEPER_CLIENT_PORT: "2181"
-#    ports:
-#      - "2181:2181"
-#    network_mode: host
-#
-#  kafka:
-#    image: confluentinc/cp-kafka:5.4.3
-#    container_name: kafka
-#    ports:
-#      - "9092:9092"
-#    depends_on:
-#      - zookeeper
-#    hostname: kafka
-#    #    links:
-#    #      - "zookeeper:zookeeper"
-#    environment:
-#      KAFKA_BROKER_ID: 1
-#      KAFKA_ZOOKEEPER_CONNECT: localhost:2181
-#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-#      KAFKA_ADVERTISED_HOST_NAME: localhost
-#      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-#      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-#      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-#      KAFKA_MIN_INSYNC_REPLICAS: 1
-#    network_mode: host
 
 # docker exec -it kafka kafka-console-consumer --topic hello --from-beginning --bootstrap-server kafka:29092
 

@@ -208,14 +208,14 @@ public class OrderFn implements StatefulFunction {
 
                 Utils.sendMessage(context,
                         CustomerFn.TYPE,
-                        String.valueOf(customerId % Constants.nCustomerPartitions),
+                        String.valueOf(customerId),
                         NotifyCustomer.TYPE,
                         new NotifyCustomer(customerId, null, Enums.NotificationType.notify_fail_checkout));
             } else {
                 // notify the customer the failed items,
                 Utils.sendMessage(context,
                         CustomerFn.TYPE,
-                        String.valueOf(customerId % Constants.nCustomerPartitions),
+                        String.valueOf(customerId),
                         Types.stringType(),
                         checkoutFailed.toString()
                         );

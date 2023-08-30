@@ -50,6 +50,8 @@ public class TempUserLoginFn implements StatefulFunction{
                             .withUtf8Key(context.self().id())
                             .withUtf8Value("Hello KAFKA" + tmpUserLogin.getUsername() + " for the " + seen + "th time!")
                             .build());
+//            System.out.println("function: REMOVE, message: " + message);
+//            context.storage().remove(SEEN);
         }  else if (message.is(Types.stringType())) {
             System.out.println("function: tempUserLoginFn, message: CYFCFY");
         } else {

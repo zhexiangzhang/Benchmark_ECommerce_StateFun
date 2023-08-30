@@ -114,28 +114,3 @@ git commit -m "kafka added"
 5 为什么seller对status的数据和其他microservice (shipment and order)可以redentunt ==>【每次都会查询其他状态，所以用cache缓存这些状态，牺牲空间比失去顾客更重要】
 6. queryDashboard 返回ok还是整体内容 【kafka会变得很慢，payload太大，用户等三秒就离开】
 
-
-
-version: "2.1"
-services:
- ###############################################################
- ##    Functions service
- ###############################################################
-
-  greeter-functions:
-    image: flink-statefun-playground-java-greeter-greeter-functions:latest
-    expose:
-      - "1108"
-
-  statefun:
-    image: apache/flink-statefun-playground:3.2.0-1.0
-    ports:
-      - "8081:8081"
-      - "8090:8090"
-      - "8091:8091"
-    depends_on:
-      - greeter-functions
-    volumes:
-      - ./module.yaml:/module.yaml
-      #- ./statefun-config/module.yaml:/module.yaml
-

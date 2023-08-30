@@ -9,7 +9,7 @@ import lombok.Getter;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.types.SimpleType;
 import org.apache.flink.statefun.sdk.java.types.Type;
-
+//
 @Getter
 @Setter
 public class GetCustomer {
@@ -32,3 +32,7 @@ public class GetCustomer {
         this.customerId = customerId;
     }
 }
+
+
+
+

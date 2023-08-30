@@ -183,7 +183,7 @@ public class PaymentFn implements StatefulFunction {
                     new PaymentNotification(orderId, Enums.OrderStatus.PAYMENT_PROCESSED)
             );
 
-            Utils.sendMessage(context, CustomerFn.TYPE, String.valueOf(customerId % Constants.nCustomerPartitions),
+            Utils.sendMessage(context, CustomerFn.TYPE, String.valueOf(customerId),
                     NotifyCustomer.TYPE,
                     new NotifyCustomer(customerId, null, Enums.NotificationType.notify_success_payment)
             );
@@ -202,7 +202,7 @@ public class PaymentFn implements StatefulFunction {
 
         } else {
             // payment failed
-            Utils.sendMessage(context, CustomerFn.TYPE, String.valueOf(customerId % Constants.nCustomerPartitions),
+            Utils.sendMessage(context, CustomerFn.TYPE, String.valueOf(customerId),
                     NotifyCustomer.TYPE,
                     new NotifyCustomer(customerId, null, Enums.NotificationType.notify_failed_payment)
             );
