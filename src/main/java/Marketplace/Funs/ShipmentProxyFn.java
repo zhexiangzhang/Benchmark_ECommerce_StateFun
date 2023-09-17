@@ -3,6 +3,7 @@ package Marketplace.Funs;
 import Common.Utils.Utils;
 import Common.Entity.TransactionMark;
 import Marketplace.Constant.Constants;
+import Marketplace.Constant.Enums;
 import Marketplace.Types.MsgToShipment.UpdateShipment;
 import Marketplace.Types.MsgToShipmentProxy.UpdateShipments;
 import Marketplace.Types.State.ShipmentProxyState;
@@ -95,25 +96,37 @@ public class ShipmentProxyFn implements StatefulFunction {
             shipmentProxyState.removeTask(tid);
 //            logger.info("ShipmentProxyFn: All partitions acked, tid = " + tid);
 
-            String response = "";
-            try {
-                TransactionMark transactionMark = new TransactionMark(
-                        tid,
-                        tid,
-                        "0",
-                        "success");
-                ObjectMapper mapper = new ObjectMapper();
-                response = mapper.writeValueAsString(transactionMark);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
 
-            context.send(
-                    KafkaEgressMessage.forEgress(KFK_EGRESS)
-                            .withTopic("updateDeliveryTask")
-                            .withUtf8Key(context.self().id())
-                            .withUtf8Value(response)
-                            .build());
+
+            Utils.notifyTransactionComplete(context,
+                    Enums.TransactionType.updateDeliveryTask.toString(),
+                    context.self().id(),
+                    tid,
+                    tid,
+                    "0",
+                    Enums.MarkStatus.SUCCESS,
+                    "shipment");
+
+//            String response = "";
+//            try {
+//                TransactionMark transactionMark = new TransactionMark(
+//                        tid,
+//                        tid,
+//                        "0",
+//                        Enums.MarkStatus.SUCCESS,
+//                        "shipment");
+//                ObjectMapper mapper = new ObjectMapper();
+//                response = mapper.writeValueAsString(transactionMark);
+//            } catch (JsonProcessingException e) {
+//                e.printStackTrace();
+//            }
+//
+//            context.send(
+//                    KafkaEgressMessage.forEgress(KFK_EGRESS)
+//                            .withTopic("updateDeliveryTask")
+//                            .withUtf8Key(context.self().id())
+//                            .withUtf8Value(response)
+//                            .build());
             String log_ = getPartionText(context.self().id())
                     + "updated delivery success, " + "tid : " + tid + "\n";
             printLog(log_);

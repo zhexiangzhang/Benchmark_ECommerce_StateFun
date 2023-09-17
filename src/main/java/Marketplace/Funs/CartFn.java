@@ -89,7 +89,8 @@ public class CartFn implements StatefulFunction {
                 addToCart.getUnitPrice(),
                 addToCart.getFreightValue(),
                 addToCart.getQuantity(),
-                addToCart.getVouchers()
+                addToCart.getVouchers(),
+                addToCart.getVersion()
         );
 
         cartState.addItem(item.getProductId(), item);
@@ -104,9 +105,6 @@ public class CartFn implements StatefulFunction {
 
 
     private void onNotifyCheckout(Context context, CustomerCheckout customerCheckout) {
-//    private void onNotifyCheckout(Context context, Message message) {
-
-        // get the state and message
         CartState cartState = getCartState(context);
 //        CustomerCheckout customerCheckout = message.as(CheckoutCart.TYPE).getCustomerCheckout();
 

@@ -5,8 +5,6 @@ import Common.Utils.Utils;
 import Common.Entity.Product;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
-import Marketplace.Types.MsgToCartFn.Cleanup;
-import Marketplace.Types.MsgToProdFn.GetAllProducts;
 import Marketplace.Types.MsgToProdFn.UpdateSinglePrice;
 import Marketplace.Types.MsgToSeller.*;
 import Marketplace.Types.MsgToProdFn.GetProduct;
@@ -16,10 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
-import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
@@ -60,8 +56,12 @@ public class ProductFn implements StatefulFunction {
                 onAddProduct(context, message);
             }
             // driver --> product (delete product)
-            else if (message.is(DeleteProduct.TYPE)) {
-                onDeleteProduct(context, message);
+            else if (message.is(UpdateProduct.TYPE)) {
+                String log_ = getPartionText(context.self().id())
+                        + "update product [receive], " + "tid : " + message.as(UpdateProduct.TYPE).getVersion() + "\n";
+                printLog(log_);
+                logger.info("receive update product, tid : " + message.as(UpdateProduct.TYPE).getVersion());
+                onUpdateProduct(context, message);
             }
             // driver --> product (update price)
             else if (message.is(UpdateSinglePrice.TYPE)) {
@@ -71,6 +71,10 @@ public class ProductFn implements StatefulFunction {
 //            {
 //                onCleanup(context);
 //            }
+            else {
+                printLog("ProductFn received unknown message type: " + message);
+            }
+
         } catch (Exception e) {
             System.out.println("Exception in ProductFn !!!!!!!!!!!!!");
             e.printStackTrace();
@@ -126,39 +130,39 @@ public class ProductFn implements StatefulFunction {
 //        sendTaskResToSeller(context, product, Enums.TaskType.AddProductType);
     }
 
-    private void onDeleteProduct(Context context, Message message) {
-        DeleteProduct deleteProduct = message.as(DeleteProduct.TYPE);
-        Long productId = deleteProduct.getProduct_id();
-
+    private void onUpdateProduct(Context context, Message message) {
+        UpdateProduct updateProduct = message.as(UpdateProduct.TYPE);
+        Long productId = updateProduct.getProduct_id();
 
         String log_ = getPartionText(context.self().id())
-                + "delete product [receive], " + "tid : " + deleteProduct.getInstanceId() + "\n";
+                + "update product [receive], " + "tid : " + updateProduct.getVersion() + "\n";
         printLog(log_);
-//        logger.info(" {tid=" + deleteProduct.getInstanceId() + "} delete product, productFn " + context.self().id());
+
         ProductState productState = getProductState(context);
         Product product = productState.getProduct(productId);
         if (product == null) {
             String log = getPartionText(context.self().id())
-                    + "delete product failed as product not exist\n"
+                    + "update product failed as product not exist\n"
                     + "product Id : " + productId
                     + "\n";
 //            showLog(log);
             logger.warning(log);
             return;
         }
-        product.setActive(false);
+        // todo : send transaction marker
+        product.setVersion(updateProduct.getVersion());
         product.setUpdatedAt(LocalDateTime.now());
 
         context.storage().set(PRODUCTSTATE, productState);
 
         String log = getPartionText(context.self().id())
-                + "delete product success\n"
+                + "delete product success AT PRODUCTFN\n"
                 + "product Id : " + productId
                 + "\n";
-//        showLog(log);
+        showLog(log);
 
         String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
-        Utils.sendMessage(context, StockFn.TYPE, stockFnPartitionID, DeleteProduct.TYPE, deleteProduct);
+        Utils.sendMessage(context, StockFn.TYPE, stockFnPartitionID, UpdateProduct.TYPE, updateProduct);
     }
 
     private void onUpdatePrice(Context context, Message message) {
@@ -173,7 +177,8 @@ public class ProductFn implements StatefulFunction {
         ProductState productState = getProductState(context);
         Product product = productState.getProduct(productId);
 
-        String result = "fail";
+        Enums.MarkStatus markStatus = Enums.MarkStatus.ERROR;
+//        String result = "fail";
         if (product == null) {
             String log = getPartionText(context.self().id())
                     + "update price failed as product not exist\n"
@@ -183,7 +188,8 @@ public class ProductFn implements StatefulFunction {
         } else {
             product.setPrice(updatePrice.getPrice());
             product.setUpdatedAt(LocalDateTime.now());
-            result = "success";
+//            result = "success";
+            markStatus = Enums.MarkStatus.SUCCESS;
             context.storage().set(PRODUCTSTATE, productState);
 
             String log = getPartionText(context.self().id())
@@ -194,25 +200,38 @@ public class ProductFn implements StatefulFunction {
 //            showLog(log);
         }
 
+
         int tid = updatePrice.getInstanceId();
         long sellerId = updatePrice.getSellerId();
-        // sellerID转换成string
-        String response = "";
-        try {
-            TransactionMark transactionMark = new TransactionMark(productId, tid, String.valueOf(sellerId), result);
-            ObjectMapper mapper = new ObjectMapper();
-            response = mapper.writeValueAsString(transactionMark);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
+
+        Utils.notifyTransactionComplete(context,
+                Enums.TransactionType.updatePriceTask.toString(),
+                String.valueOf(context.self().id()),
+                productId,
+                tid,
+                String.valueOf(sellerId),
+                markStatus,
+                "product");
+
+
+//        // sellerID转换成string
+//        String response = "";
+//        try {
+//            TransactionMark transactionMark = new TransactionMark(productId, tid, String.valueOf(sellerId), result, "product");
+//            ObjectMapper mapper = new ObjectMapper();
+//            response = mapper.writeValueAsString(transactionMark);
+//        } catch (JsonProcessingException e) {
+//            e.printStackTrace();
+//        }
 
 //        System.out.println(getPartionText(context.self().id())+" send updatePrice response to kafka: " + response);
-        context.send(
-                KafkaEgressMessage.forEgress(KFK_EGRESS)
-                        .withTopic("updatePriceTask")
-                        .withUtf8Key(context.self().id())
-                        .withUtf8Value(response)
-                        .build());
+//        context.send(
+//                KafkaEgressMessage.forEgress(KFK_EGRESS)
+//                        .withTopic("updatePriceTask")
+//                        .withUtf8Key(context.self().id())
+//                        .withUtf8Value(response)
+//                        .build());
+
 //        logger.info("[success] {tid=" + updatePrice.getInstanceId() + "} update product, productFn " + context.self().id());
 //        sendTaskResToSeller(context, product, Enums.TaskType.UpdatePriceType);
         String log = getPartionText(context.self().id())

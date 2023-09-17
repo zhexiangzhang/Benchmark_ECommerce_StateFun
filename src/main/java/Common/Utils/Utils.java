@@ -1,6 +1,7 @@
 package Common.Utils;
 
 import Common.Entity.TransactionMark;
+import Marketplace.Constant.Enums;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,10 +46,10 @@ public class Utils {
     public static void notifyTransactionComplete(Context context,
                                                  String transactionType,
                                                  String functionID,
-                                                 long taskId, int tid, String receiver, String result) {
+                                                 long taskId, int tid, String receiver, Enums.MarkStatus status, String source) {
         String response = "";
         try {
-            TransactionMark transactionMark = new TransactionMark(taskId, tid, receiver, result);
+            TransactionMark transactionMark = new TransactionMark(taskId, tid, receiver, status, source);
             ObjectMapper mapper = new ObjectMapper();
             response = mapper.writeValueAsString(transactionMark);
         } catch (JsonProcessingException e) {

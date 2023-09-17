@@ -9,6 +9,14 @@ public class Enums {
 //        DeleteProductType
 //    };
 
+    public enum MarkStatus
+    {
+        SUCCESS,
+        ERROR,
+        ABORT,
+        NOT_ACCEPTED
+    };
+
     public enum SendType
     {
         ProductFn,
@@ -18,7 +26,7 @@ public class Enums {
 
     public enum ItemStatus
     {
-        DELETED, // deleted from DB
+        UNAVAILABLE, // deleted from DB
         OUT_OF_STOCK, //
         PRICE_DIVERGENCE,
         IN_STOCK,
@@ -75,6 +83,9 @@ public class Enums {
     public enum TransactionType
     {
         checkoutTask,
-        queryDashboardTask
+        queryDashboardTask,
+        updatePriceTask,
+        updateDeliveryTask,
+        updateProductTask
     }
 }

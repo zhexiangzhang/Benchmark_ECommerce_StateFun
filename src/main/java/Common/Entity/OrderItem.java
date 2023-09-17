@@ -24,7 +24,7 @@ public class OrderItem {
     @JsonProperty("quantity") private int quantity;
     @JsonProperty("totalPrice") private double totalPrice; // without freight
     @JsonProperty("totalAmount") private double totalAmount;
-    @JsonProperty("vouchers") private double[] vouchers;
+    @JsonProperty("vouchers") private double vouchers;
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonProperty("shippingLimitDate") private LocalDateTime shippingLimitDate;

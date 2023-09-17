@@ -1,5 +1,6 @@
 package Common.Entity;
 
+import Marketplace.Constant.Enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -14,18 +15,22 @@ public class TransactionMark {
     private int tid;
     @JsonProperty("receiver") // tell stream which worker to send to
     private String receiver;
-    @JsonProperty("result")
-    private String result;
+    @JsonProperty("status") // 修改
+    private Enums.MarkStatus status;
+    @JsonProperty("source") // 新加的
+    private String source;
 
     @JsonCreator
     public TransactionMark(@JsonProperty("taskId") long taskId,
                            @JsonProperty("tid") int tid,
                            @JsonProperty("receiver") String receiver,
-                           @JsonProperty("result") String result
+                           @JsonProperty("status") Enums.MarkStatus status,
+                           @JsonProperty("source") String source
     ) {
         this.taskId = taskId;
         this.tid = tid;
         this.receiver = receiver;
-        this.result = result;
+        this.status = status;
+        this.source = source;
     }
 }

@@ -35,7 +35,9 @@ public class AddToCart {
     @JsonProperty("FreightValue") private double freightValue; //运费
 
     @JsonProperty("Quantity") private int quantity;
-    @JsonProperty("Vouchers") private double[] vouchers;
+    @JsonProperty("Voucher") private float vouchers;
+
+    @JsonProperty("Version") private int version;
 
     public AddToCart() {
     }
@@ -47,7 +49,9 @@ public class AddToCart {
                       @JsonProperty("UnitPrice") double unitPrice,
                       @JsonProperty("FreightValue") double freightValue,
                       @JsonProperty("Quantity") int quantity,
-                      @JsonProperty("Vouchers") double[] vouchers) {
+                      @JsonProperty("Voucher") float vouchers,
+                      @JsonProperty("Version") int version
+                     ) {
         this.sellerId = sellerId;
         this.productId = productId;
         this.productName = productName;
@@ -55,6 +59,7 @@ public class AddToCart {
         this.freightValue = freightValue;
         this.quantity = quantity;
         this.vouchers = vouchers;
+        this.version = version;
     }
 
 }

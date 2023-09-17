@@ -1,5 +1,7 @@
 docker images
 
+docker save -o Ecommerce.tar e-commerce-master-e-commerce-functions:latest
+
 
 chmod +x docker-install.sh
 ./docker-install.sh
@@ -114,3 +116,4 @@ git commit -m "kafka added"
 5 为什么seller对status的数据和其他microservice (shipment and order)可以redentunt ==>【每次都会查询其他状态，所以用cache缓存这些状态，牺牲空间比失去顾客更重要】
 6. queryDashboard 返回ok还是整体内容 【kafka会变得很慢，payload太大，用户等三秒就离开】
 
+git commit -m "before change"

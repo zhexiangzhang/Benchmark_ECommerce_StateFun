@@ -239,7 +239,7 @@ public class SellerFn implements StatefulFunction {
                 context,
                 Enums.TransactionType.queryDashboardTask.toString(),
                 context.self().id(),
-                sellerID, tid, context.self().id(), "success");
+                sellerID, tid, context.self().id(), Enums.MarkStatus.SUCCESS, "seller");
 
         String log_ = getPartionText(context.self().id())
                 + "query dashboard success, " + "tid : " + tid + "\n";

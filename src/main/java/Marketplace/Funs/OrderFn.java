@@ -200,7 +200,8 @@ public class OrderFn implements StatefulFunction {
                         customerId,
                         tid,
                         String.valueOf(customerId),
-                        "fail");
+                        Enums.MarkStatus.NOT_ACCEPTED,
+                        "order");
 //                logger.info("[success] {tid=" + tid + "} checkout (fail), orderFn " + context.self().id());
                 String log_ = getPartionText(context.self().id())
                         + "checkout fail, " + "tid : " + tid + "\n";
@@ -270,16 +271,12 @@ public class OrderFn implements StatefulFunction {
             BasketItem item = entry.getValue();
 
             double total_item = item.getUnitPrice() * item.getQuantity();
-            double[] vouchers = item.getVouchers();
-            double sumVouchers = 0;
-            for (double voucher : vouchers) {
-                sumVouchers = sumVouchers + voucher;
-            }
+            double vouchers = item.getVouchers();
 
-            if (total_item - sumVouchers > 0) {
-                total_amount = total_amount - sumVouchers;
-                total_incentive = total_incentive + sumVouchers;
-                total_item = total_item - sumVouchers;
+            if (total_item - vouchers > 0) {
+                total_amount = total_amount - vouchers;
+                total_incentive = total_incentive + vouchers;
+                total_item = total_item - vouchers;
             } else {
                 total_amount = total_amount - total_item;
                 total_incentive = total_incentive + total_item;

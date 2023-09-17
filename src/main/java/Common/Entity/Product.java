@@ -25,7 +25,8 @@ public class Product {
     @JsonProperty("price") private Double price;
     @JsonProperty("freight_value") private Double freight_value;
     @JsonProperty("status") private String status = "approved";
-    @JsonProperty("active") private boolean isActive;
+//    @JsonProperty("active") private boolean isActive;
+    @JsonProperty("version") private int version;
 
 //    need?????????????
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
@@ -51,7 +52,7 @@ public class Product {
                    @JsonProperty("status") String status,
                    @JsonProperty("created_at") LocalDateTime createdAt,
                    @JsonProperty("updated_at") LocalDateTime updatedAt,
-                   @JsonProperty("active") boolean isActive) {
+                   @JsonProperty("version") int version) {
         this.product_id = product_id;
         this.seller_id = seller_id;
         this.name = name;
@@ -61,7 +62,7 @@ public class Product {
         this.price = price;
         this.freight_value = freight_value;
         this.status = status;
-        this.isActive = isActive;
+        this.version = version;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }

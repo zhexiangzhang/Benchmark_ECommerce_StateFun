@@ -226,7 +226,8 @@ public class PaymentFn implements StatefulFunction {
                     customerId,
                     transactionID,
                     String.valueOf(customerId),
-                    "fail");
+                    Enums.MarkStatus.NOT_ACCEPTED,
+                    "payment");
 
             String log2 = getPartionText(context.self().id())
                     + "checkout fail, " + "tid : " + transactionID + "\n";

@@ -85,8 +85,8 @@ spec:
       valueType: e-commerce.types/UpdateSinglePrice
       targets:
         - e-commerce.fns/product
-    - topic: productDelete
-      valueType: e-commerce.types/DeleteProduct
+    - topic: productUpdate
+      valueType: e-commerce.types/UpdateProduct
       targets:
         - e-commerce.fns/product
 ---
@@ -121,7 +121,7 @@ spec:
     transactionTimeout: 15min
   topics:
     - hello
-    - deleteProductTask
+    - updateProductTask
     - updatePriceTask
     - queryDashboardTask
     - checkoutTask

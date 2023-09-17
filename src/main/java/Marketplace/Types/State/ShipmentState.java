@@ -53,6 +53,8 @@ public class ShipmentState {
                         Collectors.minBy(Comparator.comparingLong(PackageItem::getShipmentId))))
                 .entrySet().stream()
                 .filter(entry -> entry.getValue().isPresent())
+                .sorted(Comparator.comparingLong(entry -> entry.getValue().get().getShipmentId()))
+                .limit(10) // Limit the result to the first 10 sellers
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get().getShipmentId()));
         return q;
     }

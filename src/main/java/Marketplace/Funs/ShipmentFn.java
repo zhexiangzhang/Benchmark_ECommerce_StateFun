@@ -184,7 +184,8 @@ public class ShipmentFn implements StatefulFunction {
                 customerId,
                 transactionID,
                 String.valueOf(customerId),
-                "success");
+                Enums.MarkStatus.SUCCESS,
+                "shipment");
 
         String log2 = getPartionText(context.self().id())
                 + "checkout success, " + "tid : " + transactionID + "\n";

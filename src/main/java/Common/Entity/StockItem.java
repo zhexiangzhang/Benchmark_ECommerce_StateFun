@@ -20,7 +20,8 @@ public class StockItem {
     @JsonProperty("order_count") private int order_count;
     @JsonProperty("ytd") private int ytd;
     @JsonProperty("data") private String data;
-    @JsonProperty("is_active") private Boolean is_active;
+//    @JsonProperty("is_active") private Boolean is_active;
+    @JsonProperty("version") private int version;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -39,14 +40,16 @@ public class StockItem {
                      @JsonProperty("qty_reserved") int qty_reserved,
                      @JsonProperty("order_count") int order_count,
                      @JsonProperty("ytd") int ytd,
-                     @JsonProperty("data") String data) {
+                     @JsonProperty("data") String data,
+                     @JsonProperty("version") int version
+                     ) {
             this.product_id = product_id;
             this.seller_id = seller_id;
             this.qty_available = qty_available;
             this.qty_reserved = qty_reserved;
             this.order_count = order_count;
             this.ytd = ytd;
-            this.is_active = true;
+            this.version = version;
             this.data = data;
             this.createdAt = LocalDateTime.now();
             this.updatedAt = LocalDateTime.now();

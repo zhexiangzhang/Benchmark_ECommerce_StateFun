@@ -6,7 +6,7 @@ import Common.Entity.StockItem;
 import Common.Utils.Utils;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
-import Marketplace.Types.MsgToSeller.DeleteProduct;
+import Marketplace.Types.MsgToSeller.UpdateProduct;
 import Marketplace.Types.MsgToSeller.IncreaseStock;
 import Marketplace.Types.MsgToStock.ReserveStockEvent;
 import Marketplace.Types.MsgToStock.ConfirmStockEvent;
@@ -49,8 +49,8 @@ public class StockFn implements StatefulFunction {
                 addStockItem(context, message);
             }
             // product ---> stock (delete product)
-            else if (message.is(DeleteProduct.TYPE)) {
-                onDeleteItem(context, message);
+            else if (message.is(UpdateProduct.TYPE)) {
+                onUpdateProduct(context, message);
             }
             // order ---> stock (attempt reservsation)
             else if (message.is(ReserveStockEvent.TYPE)) {
@@ -99,52 +99,65 @@ public class StockFn implements StatefulFunction {
         printLog(log);
     }
 
-    private void onDeleteItem(Context context, Message message) {
+    private void onUpdateProduct(Context context, Message message) {
         StockState stockState = getStockState(context);
-        DeleteProduct deleteProduct = message.as(DeleteProduct.TYPE);
-        Long productId = deleteProduct.getProduct_id();
+        UpdateProduct updateProduct = message.as(UpdateProduct.TYPE);
+        Long productId = updateProduct.getProduct_id();
         StockItem stockItem = stockState.getItem(productId);
-        String result = "fail";
+//        String result = "fail";
 
+        Enums.MarkStatus markStatus = Enums.MarkStatus.ERROR;
         if (stockItem == null) {
             String log = String.format(getPartionText(context.self().id())
-                            + "deleteItem failed as product not exist\n"
+                            + "update product failed as product not exist\n"
                             + "productId: %s\n"
                     , productId);
             logger.warning(log);
         } else {
             stockItem.setUpdatedAt(LocalDateTime.now());
-            stockItem.setIs_active(false);
-            result = "success";
+//            stockItem.setIs_active(false);
+            stockItem.setVersion(stockItem.getVersion());
+//            result = "success";
+            markStatus = Enums.MarkStatus.SUCCESS;
             context.storage().set(STOCKSTATE, stockState);
 
             String log = String.format(getPartionText(context.self().id())
-                            + "deleteItem success (stock part)\n"
+                            + "update product success (stock part)\n"
                             + "productId: %s\n"
                     , productId);
 //            showLog(log);
         }
 
-        int tid = deleteProduct.getInstanceId();
-        long sellerId = deleteProduct.getSeller_id();
-        String response = "";
-        try {
-            TransactionMark transactionMark = new TransactionMark(productId, tid, String.valueOf(sellerId), result);
-            ObjectMapper mapper = new ObjectMapper();
-            response = mapper.writeValueAsString(transactionMark);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
+        int tid = updateProduct.getVersion();
+        long sellerId = updateProduct.getSeller_id();
+
+        Utils.notifyTransactionComplete(context,
+                Enums.TransactionType.updateProductTask.toString(),
+                context.self().id(),
+                productId,
+                tid,
+                String.valueOf(sellerId),
+                markStatus,
+                "stock");
+
+//        String response = "";
+//        try {
+//            TransactionMark transactionMark = new TransactionMark(productId, tid, String.valueOf(sellerId), Enums.MarkStatus.SUCCESS, "stock");
+//            ObjectMapper mapper = new ObjectMapper();
+//            response = mapper.writeValueAsString(transactionMark);
+//        } catch (JsonProcessingException e) {
+//            e.printStackTrace();
+//        }
 
 //        System.out.println(getPartionText(context.self().id())+" send delete product response to kafka: " + response);
-        context.send(
-                KafkaEgressMessage.forEgress(KFK_EGRESS)
-                        .withTopic("deleteProductTask")
-                        .withUtf8Key(context.self().id())
-                        .withUtf8Value(response)
-                        .build());
+//        context.send(
+//                KafkaEgressMessage.forEgress(KFK_EGRESS)
+//                        .withTopic("updateProductTask")
+//                        .withUtf8Key(context.self().id())
+//                        .withUtf8Value(response)
+//                        .build());
         String log_ = getPartionText(context.self().id())
-                + "delete product success, " + "tid : " + deleteProduct.getInstanceId() + "\n";
+                + "update product success, " + "tid : " + updateProduct.getVersion() + "\n";
         printLog(log_);
 //        logger.info("[success] {tid=" + deleteProduct.getInstanceId() + "} delete product, stockFn " + context.self().id());
     }
@@ -156,8 +169,9 @@ public class StockFn implements StatefulFunction {
         long productId = basketItem.getProductId();
         int quantity = basketItem.getQuantity();
         long customerId = reserveStockEvent.getCustomerId();
+        int version = basketItem.getVersion();
 
-        Enums.ItemStatus itemStatus = onAtptResvReq(context, productId, quantity, customerId);
+        Enums.ItemStatus itemStatus = onAtptResvReq(context, productId, quantity, customerId, version);
         reserveStockEvent.setItemStatus(itemStatus);
 
         Utils.sendMessageToCaller(
@@ -166,19 +180,19 @@ public class StockFn implements StatefulFunction {
                 reserveStockEvent);
     }
 
-    private Enums.ItemStatus onAtptResvReq(Context context, long productId, int quantity, long customerId) {
+    private Enums.ItemStatus onAtptResvReq(Context context, long productId, int quantity, long customerId, int version) {
         StockState stockState = getStockState(context);
         StockItem stockItem = stockState.getItem(productId);
 
         String partitionText = getPartionText(context.self().id());
         String productIdText = "productId: " + productId;
 
-        if (!stockItem.getIs_active()) {
-            String log = partitionText + " #sub-task#, attempt reservation request failed as product not active\n"
+        if (stockItem.getVersion() != version) {
+            String log = partitionText + " #sub-task#, attempt reservation request failed as product version not match\n"
                     + productIdText
                     + ", " + "customerId: " + customerId + "\n";
 //            showLog(log);
-            return Enums.ItemStatus.DELETED;
+            return Enums.ItemStatus.UNAVAILABLE;
         }
         if (stockItem.getQty_available() - stockItem.getQty_reserved() < quantity) {
             String log = partitionText + " #sub-task#, attempt reservation request failed as stock not enough\n"

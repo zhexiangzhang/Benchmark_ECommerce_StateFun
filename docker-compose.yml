@@ -6,14 +6,14 @@ services:
   #    Functions service
   ###############################################################
 
-#  e-commerce-functions:
-#    build:
-#      dockerfile: Dockerfile
-#      context: .
+  e-commerce-functions:
+    build:
+      dockerfile: Dockerfile
+      context: .
 
-#    expose:
-#      - "1108"
-#    network_mode: host
+    expose:
+      - "1108"
+    network_mode: host
 
   ###############################################################
   #    StateFun runtime

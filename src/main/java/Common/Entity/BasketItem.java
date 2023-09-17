@@ -26,7 +26,8 @@ public class BasketItem {
     @JsonProperty("FreightValue") private double freightValue; //运费
 
     @JsonProperty("Quantity") private int quantity;
-    @JsonProperty("Vouchers") private double[] vouchers;
+    @JsonProperty("Voucher") private double vouchers;
+    @JsonProperty("Version") private int version;
 
     public BasketItem() {
     }
@@ -38,7 +39,9 @@ public class BasketItem {
                       @JsonProperty("UnitPrice") double unitPrice,
                       @JsonProperty("FreightValue") double freightValue,
                       @JsonProperty("Quantity") int quantity,
-                      @JsonProperty("Vouchers") double[] vouchers) {
+                      @JsonProperty("Voucher") double vouchers,
+                      @JsonProperty("Version") int version
+                      ) {
         this.sellerId = sellerId;
         this.productId = productId;
         this.productName = productName;
@@ -46,6 +49,7 @@ public class BasketItem {
         this.freightValue = freightValue;
         this.quantity = quantity;
         this.vouchers = vouchers;
+        this.version = version;
     }
 
 }
