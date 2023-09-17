@@ -24,7 +24,6 @@ public final class UndertowHttpHandler implements HttpHandler {
 
     private void onRequestBody(HttpServerExchange exchange, byte[] requestBytes) {
         try {
-            System.out.println("requestBytes: " + requestBytes);
             CompletableFuture<Slice> future = handler.handle(Slices.wrap(requestBytes));
             exchange.dispatch();
             future.whenComplete(
