@@ -33,7 +33,15 @@ public class SellerState {
     @JsonProperty("seller")
     public Seller seller;
 
+<<<<<<< HEAD
     // entry in process, only for INVOICED / PAYMENT_PORCESSED / READY_FOR_SHIPMENT / IN_TRANSIT
+=======
+    @JsonProperty("orderEntriesHistory")
+//    public Map<Long, OrderEntry> orderEntriesHistory;
+    public Set<OrderEntry> orderEntriesHistory;
+
+    // entry in process, only for INVOICED / PAYMENT_PROCESSED / READY_FOR_SHIPMENT / IN_TRANSIT
+>>>>>>> 09ab8cb (adding gitignore + creating test folder + test connecting to postgreSQL)
     @JsonProperty("orderEntries")
     public Set<OrderEntry> orderEntries;
 
