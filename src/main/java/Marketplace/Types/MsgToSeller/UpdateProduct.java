@@ -24,9 +24,9 @@ public class UpdateProduct {
                     bytes -> mapper.readValue(bytes, UpdateProduct.class));
 
     @JsonProperty("seller_id")
-    private long seller_id;
+    private int seller_id;
     @JsonProperty("product_id")
-    private long product_id;
+    private int product_id;
     @JsonProperty("name")
     private String name;
     @JsonProperty("sku")
@@ -51,8 +51,8 @@ public class UpdateProduct {
     }
 
     @JsonCreator
-    public UpdateProduct(@JsonProperty("seller_id") long seller_id,
-                         @JsonProperty("product_id") long product_id,
+    public UpdateProduct(@JsonProperty("seller_id") int seller_id,
+                         @JsonProperty("product_id") int product_id,
                          @JsonProperty("name") String name,
                          @JsonProperty("sku") String sku,
                          @JsonProperty("category") String category,

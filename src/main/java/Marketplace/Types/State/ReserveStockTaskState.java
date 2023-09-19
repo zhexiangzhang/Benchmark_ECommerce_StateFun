@@ -26,49 +26,27 @@ public class ReserveStockTaskState {
                     mapper::writeValueAsBytes,
                     bytes -> mapper.readValue(bytes, ReserveStockTaskState.class));
 
-    // long: customerId  long : productId
-//    @JsonProperty("attemptResTaskList")
-////    Map<Long, Map<Long, Enums.ItemStatus>> attemptResTaskList = new HashMap<>();
-//    Map<Long, List<CheckoutResv>> attemptResTaskList = new HashMap<>();
-
     @JsonProperty("remainSubTaskCnt")
 //  how many partitions have not finishe attempting reservation
-    Map<Long, Integer> remainSubTaskCnt = new HashMap<>();
+    Map<Integer, Integer> remainSubTaskCnt = new HashMap<>();
 
     @JsonProperty("itemsSuccessResv")
-    Map<Long, List<BasketItem>> itemsSuccessResv = new HashMap<>();
+    Map<Integer, List<BasketItem>> itemsSuccessResv = new HashMap<>();
     @JsonProperty("itemsFailedResv")
-    Map<Long, List<BasketItem>> itemsFailedResv = new HashMap<>();
+    Map<Integer, List<BasketItem>> itemsFailedResv = new HashMap<>();
 
     @JsonIgnore
-    public void addNewTask(long customerId, int taskNum) {
+    public void addNewTask(int customerId, int taskNum) {
         remainSubTaskCnt.put(customerId, taskNum);
 //        attemptResTaskList.put(customerId, new ArrayList<>());
         itemsSuccessResv.put(customerId, new ArrayList<>());
         itemsFailedResv.put(customerId, new ArrayList<>());
     }
 
-//    @JsonIgnore
-//    public List<CheckoutResv> getSuccessAttempResvSubtask(long customerId) {
-//        List<CheckoutResv> checkoutResvList = attemptResTaskList.get(customerId);
-//        List<CheckoutResv> successCheckoutResvList = new ArrayList<>();
-//        for(CheckoutResv checkoutResv : checkoutResvList) {
-//            if(checkoutResv.getItemStatus() == Enums.ItemStatus.IN_STOCK) {
-//                successCheckoutResvList.add(checkoutResv);
-//            }
-//        }
-//        return successCheckoutResvList;
-//    }
-
-//    @JsonIgnore
-//    public List<CheckoutResv> getSingleResvTask(long customerId) {
-//        return attemptResTaskList.get(customerId);
-//    }
-
     @JsonIgnore
-    public Map<Long, BasketItem> getSingleSuccessResvItems(long customerId) {
+    public Map<Integer, BasketItem> getSingleSuccessResvItems(int customerId) {
         List<BasketItem> items = itemsSuccessResv.get(customerId);
-        Map<Long, BasketItem> itemsMap = new HashMap<>();
+        Map<Integer, BasketItem> itemsMap = new HashMap<>();
         for(BasketItem item : items) {
             itemsMap.put(item.getProductId(), item);
         }
@@ -76,9 +54,9 @@ public class ReserveStockTaskState {
     }
 
     @JsonIgnore
-    public Map<Long, BasketItem> getSingleFailedResvItems(long customerId) {
+    public Map<Integer, BasketItem> getSingleFailedResvItems(int customerId) {
         List<BasketItem> items = itemsFailedResv.get(customerId);
-        Map<Long, BasketItem> itemsMap = new HashMap<>();
+        Map<Integer, BasketItem> itemsMap = new HashMap<>();
         for(BasketItem item : items) {
             itemsMap.put(item.getProductId(), item);
         }
@@ -86,7 +64,7 @@ public class ReserveStockTaskState {
     }
 
     @JsonIgnore
-    public void addCompletedSubTask(long customerId, ReserveStockEvent itemRes) {
+    public void addCompletedSubTask(int customerId, ReserveStockEvent itemRes) {
         // Decrement the taskNum for the customerId corresponding to attemptResTaskCntList.
         int taskNum = remainSubTaskCnt.get(customerId);
         taskNum = taskNum - 1;
@@ -105,7 +83,7 @@ public class ReserveStockTaskState {
     }
 
     @JsonIgnore
-    public boolean isTaskComplete(long customerId) {
+    public boolean isTaskComplete(int customerId) {
         if (remainSubTaskCnt.get(customerId) == 0) {
             return true;
         }
@@ -113,7 +91,7 @@ public class ReserveStockTaskState {
     }
 
     @JsonIgnore
-    public void removeTask(long customerId) {
+    public void removeTask(int customerId) {
         remainSubTaskCnt.remove(customerId);
 //        attemptResTaskList.remove(customerId);
         itemsSuccessResv.remove(customerId);

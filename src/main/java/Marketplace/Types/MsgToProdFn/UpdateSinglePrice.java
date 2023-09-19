@@ -22,18 +22,18 @@ public class UpdateSinglePrice {
                     bytes -> mapper.readValue(bytes, UpdateSinglePrice.class));
 
     @JsonProperty("sellerId")
-    private Long sellerId;
+    private int sellerId;
     @JsonProperty("productId")
-    private Long productId;
+    private int productId;
     @JsonProperty("price")
-    private Double price;
+    private float price;
     @JsonProperty("instanceId")
     private int instanceId;
 
     @JsonCreator
-    public UpdateSinglePrice(@JsonProperty("sellerId") Long sellerId,
-                             @JsonProperty("productId") Long productId,
-                             @JsonProperty("price") Double price,
+    public UpdateSinglePrice(@JsonProperty("sellerId") int sellerId,
+                             @JsonProperty("productId") int productId,
+                             @JsonProperty("price") float price,
                              @JsonProperty("instanceId") int instanceId) {
         this.sellerId = sellerId;
         this.productId = productId;

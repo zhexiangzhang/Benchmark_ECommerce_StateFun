@@ -24,7 +24,7 @@ public class ShipmentFn implements StatefulFunction {
 
     static final TypeName TYPE = TypeName.typeNameOf(Constants.FUNS_NAMESPACE, "shipment");
 
-    static final ValueSpec<Long> SHIPMENTIDSTATE = ValueSpec.named("shipmentIdState").withLongType();
+    static final ValueSpec<Integer> SHIPMENTIDSTATE = ValueSpec.named("shipmentIdState").withIntType();
     static final ValueSpec<ShipmentState> SHIPMENT_STATE = ValueSpec.named("shipmentState").withCustomType(ShipmentState.TYPE);
 
     //  Contains all the information needed to create a function instance
@@ -49,8 +49,8 @@ public class ShipmentFn implements StatefulFunction {
         return context.done();
     }
 
-    private Long generateNextShipmentId(Context context) {
-        Long shipmentId = context.storage().get(SHIPMENTIDSTATE).orElse(0L) + 1;
+    private int generateNextShipmentId(Context context) {
+        int shipmentId = context.storage().get(SHIPMENTIDSTATE).orElse(0) + 1;
         context.storage().set(SHIPMENTIDSTATE, shipmentId);
         return shipmentId;
     }
@@ -77,7 +77,7 @@ public class ShipmentFn implements StatefulFunction {
         ProcessShipment processShipment = message.as(ProcessShipment.TYPE);
         Invoice invoice = processShipment.getInvoice();
         CustomerCheckout customerCheckout = invoice.getCustomerCheckout();
-        long customerId = customerCheckout.getCustomerId();
+        int customerId = customerCheckout.getCustomerId();
         int transactionID = processShipment.getInstanceId();
         LocalDateTime now = LocalDateTime.now();
 //        String log = getPartionText(context.self().id()) + "ShipmentFn: onProcessShipment: " + processShipment.toString();
@@ -88,23 +88,23 @@ public class ShipmentFn implements StatefulFunction {
         List<OrderItem> items = invoiceItems.stream()
                 .collect(Collectors.groupingBy(OrderItem::getSellerId))
                 .entrySet().stream()
-                .sorted(Map.Entry.<Long, List<OrderItem>>comparingByValue(Comparator.comparingInt(List::size)).reversed())
+                .sorted(Map.Entry.<Integer, List<OrderItem>>comparingByValue(Comparator.comparingInt(List::size)).reversed())
                 .flatMap(entry -> entry.getValue().stream())
                 .collect(Collectors.toList());
 
-        long shipmentId = generateNextShipmentId(context);
+        int shipmentId = generateNextShipmentId(context);
         Shipment shipment = new Shipment(
                 shipmentId,
                 invoice.getOrderID(),
                 customerCheckout.getCustomerId(),
                 items.size(),
-                items.stream().mapToDouble(OrderItem::getFreightValue).sum(),
+                (float) items.stream().mapToDouble(OrderItem::getFreightValue).sum(),
                 now,
                 Enums.ShipmentStatus.APPROVED,
                 customerCheckout.getFirstName(),
                 customerCheckout.getLastName(),
                 customerCheckout.getStreet(),
-                Long.parseLong(invoice.getOrderPartitionID()),
+                Integer.parseInt(invoice.getOrderPartitionID()),
 
                 customerCheckout.getZipCode(),
                 customerCheckout.getCity(),
@@ -159,7 +159,7 @@ public class ShipmentFn implements StatefulFunction {
         );
 
         List<OrderItem> orderItems = invoice.getItems();
-        List<Long> sellerIds = new ArrayList<>();
+        List<Integer> sellerIds = new ArrayList<>();
         for (OrderItem orderItem : orderItems) {
             if (!sellerIds.contains(orderItem.getSellerId())) {
                 sellerIds.add(orderItem.getSellerId());
@@ -198,9 +198,9 @@ public class ShipmentFn implements StatefulFunction {
     }
 
     private void onGetPendingPackages(Context context, Message message) {
-        long sellerId = message.as(GetPendingPackages.TYPE).getSellerID();
+        int sellerId = message.as(GetPendingPackages.TYPE).getSellerID();
         ShipmentState shipmentState = getShipmentState(context);
-        Map<Long, List<PackageItem>> packages = shipmentState.getPackages();
+        Map<Integer, List<PackageItem>> packages = shipmentState.getPackages();
 
         List<PackageItem> pendingPackages =
                 packages.values().stream()
@@ -230,16 +230,16 @@ public class ShipmentFn implements StatefulFunction {
     private void onUpdateShipment(Context context, Message message) {
 
         ShipmentState shipmentState = getShipmentState(context);
-        Map<Long, List<PackageItem>> packages = shipmentState.getPackages();
+        Map<Integer, List<PackageItem>> packages = shipmentState.getPackages();
 
         String log = getPartionText(context.self().id()) + "UpdateShipment in, packages have : " + packages + "\n";
 //        showLog(log);
 
         // contains the minimum shipment ID for each seller.
         // 对应 每个卖家（sellerId）对应的最小发货单号（shipmentId）
-        Map<Long, Long> q = shipmentState.GetOldestOpenShipmentPerSeller();
+        Map<Integer, Integer> q = shipmentState.GetOldestOpenShipmentPerSeller();
 
-        for (Map.Entry<Long, Long> kv : q.entrySet()) {
+        for (Map.Entry<Integer, Integer> kv : q.entrySet()) {
             // 获取相应的包裹列表
             List<PackageItem> packagesForSeller = shipmentState.GetShippedPackagesByShipmentIDAndSeller(kv.getKey(), kv.getValue());
             updatePackageDelivery(context, packagesForSeller, kv.getKey());
@@ -256,12 +256,12 @@ public class ShipmentFn implements StatefulFunction {
         Utils.sendMessageToCaller(context, UpdateShipment.TYPE, updateShipment);
     }
 
-    private void updatePackageDelivery(Context context, List<PackageItem> packageToUpdate, long sellerID) {
+    private void updatePackageDelivery(Context context, List<PackageItem> packageToUpdate, int sellerID) {
         ShipmentState shipmentState = getShipmentState(context);
-        Map<Long, Shipment> shipments = shipmentState.getShipments();
-        Map<Long, List<PackageItem>> packages = shipmentState.getPackages();
-        long shipmentId = packageToUpdate.get(0).getShipmentId();
-        long sellerId = packageToUpdate.get(0).getSellerId();
+        Map<Integer, Shipment> shipments = shipmentState.getShipments();
+        Map<Integer, List<PackageItem>> packages = shipmentState.getPackages();
+        int shipmentId = packageToUpdate.get(0).getShipmentId();
+        int sellerId = packageToUpdate.get(0).getSellerId();
 
         Shipment shipment = shipments.get(shipmentId);
         LocalDateTime now = LocalDateTime.now();

@@ -14,17 +14,17 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class OrderItem {
-    @JsonProperty("orderId") private long orderId;
-    @JsonProperty("orderItemId") private long orderItemId;
-    @JsonProperty("productId") private long productId;
+    @JsonProperty("orderId") private int orderId;
+    @JsonProperty("orderItemId") private int orderItemId;
+    @JsonProperty("productId") private int productId;
     @JsonProperty("productName") private String productName;
-    @JsonProperty("sellerId") private long sellerId;
-    @JsonProperty("unitPrice") private double unitPrice;
-    @JsonProperty("freightValue") private double freightValue;
+    @JsonProperty("sellerId") private int sellerId;
+    @JsonProperty("unitPrice") private float unitPrice;
+    @JsonProperty("freightValue") private float freightValue;
     @JsonProperty("quantity") private int quantity;
-    @JsonProperty("totalPrice") private double totalPrice; // without freight
-    @JsonProperty("totalAmount") private double totalAmount;
-    @JsonProperty("vouchers") private double vouchers;
+    @JsonProperty("totalPrice") private float totalPrice; // without freight
+    @JsonProperty("totalAmount") private float totalAmount;
+    @JsonProperty("vouchers") private float vouchers;
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonProperty("shippingLimitDate") private LocalDateTime shippingLimitDate;
@@ -33,16 +33,16 @@ public class OrderItem {
     }
 
     @JsonCreator
-    public OrderItem(@JsonProperty("orderId") long orderId,
-                     @JsonProperty("orderItemId") long orderItemId,
-                     @JsonProperty("productId") long productId,
+    public OrderItem(@JsonProperty("orderId") int orderId,
+                     @JsonProperty("orderItemId") int orderItemId,
+                     @JsonProperty("productId") int productId,
                      @JsonProperty("productName") String productName,
-                     @JsonProperty("sellerId") long sellerId,
-                     @JsonProperty("unitPrice") double unitPrice,
-                     @JsonProperty("freightValue") double freightValue,
+                     @JsonProperty("sellerId") int sellerId,
+                     @JsonProperty("unitPrice") float unitPrice,
+                     @JsonProperty("freightValue") float freightValue,
                      @JsonProperty("quantity") int quantity,
-                     @JsonProperty("totalPrice") double totalPrice,
-                     @JsonProperty("totalAmount") double totalAmount,
+                     @JsonProperty("totalPrice") float totalPrice,
+                     @JsonProperty("totalAmount") float totalAmount,
                      @JsonProperty("shippingLimitDate") LocalDateTime shippingLimitDate) {
         this.orderId = orderId;
         this.orderItemId = orderItemId;

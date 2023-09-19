@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @ToString
 public class Customer {
 
-    @JsonProperty("id") private long customerId;
+    @JsonProperty("id") private int customerId;
     @JsonProperty("first_name") private String firstName;
     @JsonProperty("last_name") private String lastName;
     @JsonProperty("address") private String address;
@@ -36,15 +36,15 @@ public class Customer {
 
 //    ?
     @JsonProperty("pendingDeliveriesCount") private int pendingDeliveriesCount = 0;
-    @JsonProperty("totalSpentItems") private BigDecimal totalSpentItems;
-    @JsonProperty("totalSpentFreights") private BigDecimal totalSpentFreights;
+//    @JsonProperty("totalSpentItems") private BigDecimal totalSpentItems;
+//    @JsonProperty("totalSpentFreights") private BigDecimal totalSpentFreights;
     @JsonProperty("name") private String name; // need to delete
 //    ??
     @JsonProperty("abandoned_cart_count") private int abandonedCartCount = 0;
 
     @JsonCreator
     public Customer(
-            @JsonProperty("id") long customerId,
+            @JsonProperty("id") int customerId,
             @JsonProperty("first_name") String firstName,
             @JsonProperty("last_name") String lastName,
             @JsonProperty("address") String address,
@@ -85,7 +85,7 @@ public class Customer {
         this.failedPaymentCount = failedPaymentCount;
         this.pendingDeliveriesCount = 0;
         this.deliveryCount = deliveryCount;
-        this.totalSpentItems = BigDecimal.ZERO;
-        this.totalSpentFreights = BigDecimal.ZERO;
+//        this.totalSpentItems = BigDecimal.ZERO;
+//        this.totalSpentFreights = BigDecimal.ZERO;
     }
 }

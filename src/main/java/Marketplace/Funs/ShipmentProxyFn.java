@@ -22,7 +22,6 @@ public class ShipmentProxyFn implements StatefulFunction {
 
     static final TypeName TYPE = TypeName.typeNameOf(Constants.FUNS_NAMESPACE, "shipmentProxy");
 
-//    static final ValueSpec<Long> SHIPMENTIDSTATE = ValueSpec.named("shipmentIdState").withLongType();
     static final ValueSpec<ShipmentProxyState> PROXYSTATE =  ValueSpec.named("shipmentProxyState").withCustomType(ShipmentProxyState.TYPE);
 
     //  Contains all the information needed to create a function instance

@@ -25,6 +25,6 @@ public class Checkout {
     @JsonProperty("customerCheckout")
     private CustomerCheckout customerCheckout;
     @JsonProperty("items")
-    private Map<Long, BasketItem> items;
+    private Map<Integer, BasketItem> items;
 
 }

@@ -17,15 +17,15 @@ import java.time.LocalDateTime;
 @Getter
 @ToString
 public class PackageItem {
-    @JsonProperty("packageId") private long packageId;
-    @JsonProperty("orderId") private long orderId;
-    @JsonProperty("shipmentId") private long shipmentId;
+    @JsonProperty("packageId") private int packageId;
+    @JsonProperty("orderId") private int orderId;
+    @JsonProperty("shipmentId") private int shipmentId;
 
     // FK
     // product identification
-    @JsonProperty("sellerId")  public long sellerId;
-    @JsonProperty("productId") public long productId;
-    @JsonProperty("freightValue") public double freightValue;
+    @JsonProperty("sellerId")  public int sellerId;
+    @JsonProperty("productId") public int productId;
+    @JsonProperty("freightValue") public float freightValue;
     @JsonProperty("quantity") public int quantity;
     @JsonProperty("productName") public String productName;
     @JsonProperty("packageStatus") public Enums.PackageStatus packageStatus;
@@ -42,13 +42,13 @@ public class PackageItem {
 
     @JsonCreator
     public PackageItem(
-            @JsonProperty("shipmentId") long shipmentId,
-            @JsonProperty("orderId") long orderId,
+            @JsonProperty("shipmentId") int shipmentId,
+            @JsonProperty("orderId") int orderId,
             @JsonProperty("packageId") int packageId,
-            @JsonProperty("sellerId") long sellerId,
-            @JsonProperty("productId") long productId,
+            @JsonProperty("sellerId") int sellerId,
+            @JsonProperty("productId") int productId,
             @JsonProperty("quantity") int quantity,
-            @JsonProperty("freightValue") double freightValue,
+            @JsonProperty("freightValue") float freightValue,
             @JsonProperty("productName") String productName,
             @JsonProperty("shipping_date") LocalDateTime shipping_date,
             @JsonProperty("packageStatus") Enums.PackageStatus packageStatus) {

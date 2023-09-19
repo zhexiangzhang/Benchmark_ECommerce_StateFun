@@ -29,7 +29,7 @@ public class ShipmentNotification {
                     bytes -> mapper.readValue(bytes, ShipmentNotification.class));
 
     @JsonProperty("orderId")
-    private long orderId;
+    private int orderId;
 
     @JsonProperty("Status")
     private Enums.ShipmentStatus shipmentStatus;
@@ -40,11 +40,11 @@ public class ShipmentNotification {
     private LocalDateTime eventDate;
 
     @JsonProperty("customerID")
-    private long customerID;
+    private int customerID;
 
     @JsonCreator
-    public ShipmentNotification(@JsonProperty("orderId") long orderId,
-                                @JsonProperty("customerID") long customerID,
+    public ShipmentNotification(@JsonProperty("orderId") int orderId,
+                                @JsonProperty("customerID") int customerID,
                                 @JsonProperty("Status") Enums.ShipmentStatus shipmentStatus,
                                 @JsonProperty("eventDate") LocalDateTime eventDate) {
         this.orderId = orderId;

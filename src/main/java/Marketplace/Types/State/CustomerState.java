@@ -31,7 +31,7 @@ public class CustomerState {
 //    public Customer customer;
 
     @JsonProperty("customers")
-    public HashMap<Long, Customer> customers;
+    public HashMap<Integer, Customer> customers;
 
     @JsonIgnore
     public void addCustomer(Customer customer) {
@@ -39,7 +39,7 @@ public class CustomerState {
     }
 
     @JsonIgnore
-    public Customer getCustomerById(Long customer_id) {
+    public Customer getCustomerById(int customer_id) {
         return customers.get(customer_id);
     }
 

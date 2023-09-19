@@ -85,7 +85,7 @@ public class StockFn implements StatefulFunction {
     private void addStockItem(Context context, Message message) {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
         StockItem stockItem = increaseStock.getStockItem();
-        Long productId = stockItem.getProduct_id();
+        int productId = stockItem.getProduct_id();
 
 //        int num = stockItem.getQty_available();
         StockState stockState = getStockState(context);
@@ -102,7 +102,7 @@ public class StockFn implements StatefulFunction {
     private void onUpdateProduct(Context context, Message message) {
         StockState stockState = getStockState(context);
         UpdateProduct updateProduct = message.as(UpdateProduct.TYPE);
-        Long productId = updateProduct.getProduct_id();
+        int productId = updateProduct.getProduct_id();
         StockItem stockItem = stockState.getItem();
 //        String result = "fail";
 
@@ -129,7 +129,7 @@ public class StockFn implements StatefulFunction {
         }
 
         int tid = updateProduct.getVersion();
-        long sellerId = updateProduct.getSeller_id();
+        int sellerId = updateProduct.getSeller_id();
 
         Utils.notifyTransactionComplete(context,
                 Enums.TransactionType.updateProductTask.toString(),
@@ -140,22 +140,6 @@ public class StockFn implements StatefulFunction {
                 markStatus,
                 "stock");
 
-//        String response = "";
-//        try {
-//            TransactionMark transactionMark = new TransactionMark(productId, tid, String.valueOf(sellerId), Enums.MarkStatus.SUCCESS, "stock");
-//            ObjectMapper mapper = new ObjectMapper();
-//            response = mapper.writeValueAsString(transactionMark);
-//        } catch (JsonProcessingException e) {
-//            e.printStackTrace();
-//        }
-
-//        System.out.println(getPartionText(context.self().id())+" send delete product response to kafka: " + response);
-//        context.send(
-//                KafkaEgressMessage.forEgress(KFK_EGRESS)
-//                        .withTopic("updateProductTask")
-//                        .withUtf8Key(context.self().id())
-//                        .withUtf8Value(response)
-//                        .build());
         String log_ = getPartionText(context.self().id())
                 + "update product success, " + "tid : " + updateProduct.getVersion() + "\n";
         printLog(log_);
@@ -166,9 +150,9 @@ public class StockFn implements StatefulFunction {
         ReserveStockEvent reserveStockEvent = message.as(ReserveStockEvent.TYPE);
 
         BasketItem basketItem = reserveStockEvent.getItem();
-        long productId = basketItem.getProductId();
+        int productId = basketItem.getProductId();
         int quantity = basketItem.getQuantity();
-        long customerId = reserveStockEvent.getCustomerId();
+        int customerId = reserveStockEvent.getCustomerId();
         int version = basketItem.getVersion();
 
         Enums.ItemStatus itemStatus = onAtptResvReq(context, productId, quantity, customerId, version);
@@ -180,7 +164,7 @@ public class StockFn implements StatefulFunction {
                 reserveStockEvent);
     }
 
-    private Enums.ItemStatus onAtptResvReq(Context context, long productId, int quantity, long customerId, int version) {
+    private Enums.ItemStatus onAtptResvReq(Context context, int productId, int quantity, int customerId, int version) {
         StockState stockState = getStockState(context);
         StockItem stockItem = stockState.getItem();
 
@@ -217,7 +201,7 @@ public class StockFn implements StatefulFunction {
         }
     }
 
-    private void onCancelResvReq(Context context, long productId, int quantity) {
+    private void onCancelResvReq(Context context, int productId, int quantity) {
         StockState stockState = getStockState(context);
         StockItem stockItem = stockState.getItem();
         stockItem.setQty_reserved(stockItem.getQty_reserved() - quantity);
@@ -225,11 +209,11 @@ public class StockFn implements StatefulFunction {
         context.storage().set(STOCKSTATE, stockState);
     }
 
-    private void paymentFail(Context context, long productId, int quantity) {
+    private void paymentFail(Context context, int productId, int quantity) {
         onCancelResvReq(context, productId, quantity);
     }
 
-    private void paymentConfirm(Context context, long productId, int quantity) {
+    private void paymentConfirm(Context context, int productId, int quantity) {
         // increase order count
         StockState stockState = getStockState(context);
         StockItem stockItem = stockState.getItem();
@@ -243,11 +227,10 @@ public class StockFn implements StatefulFunction {
 
     private void onHandlePaymentResv(Context context, Message message){
         ConfirmStockEvent confirmStockEvent = message.as(ConfirmStockEvent.TYPE);
-        long productId = confirmStockEvent.getProductId();
+        int productId = confirmStockEvent.getProductId();
         int quantity = confirmStockEvent.getQuantity();
         Enums.OrderStatus orderStatus = confirmStockEvent.getOrderStatus();
         String uniqueId = confirmStockEvent.getUniqueOrderId();
-//        long orderId = paymentResv.getOrderId();
 
         String log = String.format(getPartionText(context.self().id())
                 + "StockFn apply PaymentResv, productId: %s, uniqueOrderId: %s", productId, uniqueId);

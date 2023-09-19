@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 @Getter
 public class CustomerCheckout {
 
-    @JsonProperty("CustomerId") private long customerId;
+    @JsonProperty("CustomerId") private int customerId;
     @JsonProperty("FirstName") private String firstName;
     @JsonProperty("LastName") private String lastName;
     @JsonProperty("Street") private String street;
@@ -32,7 +32,7 @@ public class CustomerCheckout {
 
     @JsonCreator
     public CustomerCheckout(
-            @JsonProperty("CustomerId") long customerId,
+            @JsonProperty("CustomerId") int customerId,
             @JsonProperty("FirstName") String firstName,
             @JsonProperty("LastName") String lastName,
             @JsonProperty("Street") String street,

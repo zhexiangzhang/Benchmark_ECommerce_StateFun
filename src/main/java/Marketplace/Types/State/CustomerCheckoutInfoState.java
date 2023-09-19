@@ -28,20 +28,20 @@ public class CustomerCheckoutInfoState {
                     bytes -> mapper.readValue(bytes, CustomerCheckoutInfoState.class));
 
     @JsonProperty("checkout")
-    private Map<Long, Checkout> checkout = new HashMap<>();
+    private Map<Integer, Checkout> checkout = new HashMap<>();
 
     @JsonIgnore
-    public void addCheckout(Long customerId, Checkout checkout) {
+    public void addCheckout(int customerId, Checkout checkout) {
         this.checkout.put(customerId, checkout);
     }
 
     @JsonIgnore
-    public void removeSingleCheckout(Long customerId) {
+    public void removeSingleCheckout(int customerId) {
         this.checkout.remove(customerId);
     }
 
     @JsonIgnore
-    public Checkout getSingleCheckout(Long customerId) {
+    public Checkout getSingleCheckout(int customerId) {
         return this.checkout.get(customerId);
     }
 }

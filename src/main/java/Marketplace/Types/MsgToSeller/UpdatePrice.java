@@ -25,7 +25,7 @@ public class UpdatePrice {
                     bytes -> mapper.readValue(bytes, UpdatePrice.class));
 
     @JsonProperty("updateID2Price")
-    private Map<Long, Double> updateID2Price;
+    private Map<Integer, Double> updateID2Price;
 
 //    @JsonProperty("product_id")
 //    private Long product_id;
@@ -36,7 +36,7 @@ public class UpdatePrice {
     }
 
     @JsonCreator
-    public UpdatePrice(@JsonProperty("updateID2Price") Map<Long, Double> updateID2Price) {
+    public UpdatePrice(@JsonProperty("updateID2Price") Map<Integer, Double> updateID2Price) {
         this.updateID2Price = updateID2Price;
     }
 //    @JsonCreator

@@ -31,36 +31,38 @@ public class ShipmentState {
                     mapper::writeValueAsBytes,
                     bytes -> mapper.readValue(bytes, ShipmentState.class));
 
-    @JsonProperty("shipments") private Map<Long, Shipment> shipments = new HashMap<>();
-    @JsonProperty("packages") private Map<Long, List<PackageItem>> packages = new HashMap<>();
+    @JsonProperty("shipments") private Map<Integer, Shipment> shipments = new HashMap<>();
+    @JsonProperty("packages") private Map<Integer, List<PackageItem>> packages = new HashMap<>();
 
     @JsonIgnore
-    public void addShipment(long orderId, Shipment shipment) {
+    public void addShipment(int orderId, Shipment shipment) {
         shipments.put(orderId, shipment);
     }
 
     @JsonIgnore
-    public void addPackage(long orderId, List<PackageItem> packageItem) {
+    public void addPackage(int orderId, List<PackageItem> packageItem) {
         packages.put(orderId, packageItem);
     }
 
     @JsonIgnore
-    public Map<Long, Long> GetOldestOpenShipmentPerSeller() {
-        Map<Long, Long> q = this.packages.values().stream()
+    public Map<Integer, Integer> GetOldestOpenShipmentPerSeller() {
+        Map<Integer, Integer> q = this.packages.values().stream()
                 .flatMap(List::stream)
                 .filter(p -> p.getPackageStatus().equals(Enums.PackageStatus.SHIPPED))
                 .collect(Collectors.groupingBy(PackageItem::getSellerId,
-                        Collectors.minBy(Comparator.comparingLong(PackageItem::getShipmentId))))
+//                        Collectors.minBy(Comparator.comparingLong(PackageItem::getShipmentId))))
+                        Collectors.minBy(Comparator.comparingInt(PackageItem::getShipmentId))))
                 .entrySet().stream()
                 .filter(entry -> entry.getValue().isPresent())
-                .sorted(Comparator.comparingLong(entry -> entry.getValue().get().getShipmentId()))
+//                .sorted(Comparator.comparingLong(entry -> entry.getValue().get().getShipmentId()))
+                .sorted(Comparator.comparingInt(entry -> entry.getValue().get().getShipmentId()))
                 .limit(10) // Limit the result to the first 10 sellers
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get().getShipmentId()));
         return q;
     }
 
     @JsonIgnore
-    public List<PackageItem> GetShippedPackagesByShipmentIDAndSeller(long sellerId, long shipmentId) {
+    public List<PackageItem> GetShippedPackagesByShipmentIDAndSeller(int sellerId, int shipmentId) {
         List<PackageItem> packagesForSeller = packages.get(shipmentId).stream()
                 .filter(p -> p.getSellerId() == sellerId
 //                        && p.getShipmentId() == shipmentId
@@ -70,7 +72,7 @@ public class ShipmentState {
     }
 
     @JsonIgnore
-    public int GetTotalDeliveredPackagesForShipment(long shipmentId) {
+    public int GetTotalDeliveredPackagesForShipment(int shipmentId) {
         int countDelivered = (int) packages.get(shipmentId).stream()
                 .filter(p -> p.getPackageStatus() == Enums.PackageStatus.DELIVERED)
                 .count();

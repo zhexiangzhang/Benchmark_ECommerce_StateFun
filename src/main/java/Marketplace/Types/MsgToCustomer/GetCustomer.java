@@ -22,13 +22,13 @@ public class GetCustomer {
                     bytes -> mapper.readValue(bytes, GetCustomer.class));
 
     @JsonProperty("customerId")
-     private long customerId;
+     private int customerId;
 
     GetCustomer() {
     }
 
     @JsonCreator
-    public GetCustomer(@JsonProperty("customerId") long customerId) {
+    public GetCustomer(@JsonProperty("customerId") int customerId) {
         this.customerId = customerId;
     }
 }

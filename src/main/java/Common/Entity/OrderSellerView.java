@@ -8,16 +8,16 @@ import lombok.Setter;
 @Getter
 @Setter
 public class OrderSellerView {
-    @JsonProperty("sellerId") private long sellerId;
+    @JsonProperty("sellerId") private int sellerId;
 
     // information below from a seller's perspective
 
     @JsonProperty("count_items") private int count_items = 0;
-    @JsonProperty("total_amount") private double total_amount = 0;
-    @JsonProperty("total_freight") private double total_freight = 0;
-    @JsonProperty("total_incentive") private double total_incentive = 0;
-    @JsonProperty("total_invoice") private double total_invoice = 0;
-    @JsonProperty("total_items") private double total_items = 0;
+    @JsonProperty("total_amount") private float total_amount = 0;
+    @JsonProperty("total_freight") private float total_freight = 0;
+    @JsonProperty("total_incentive") private float total_incentive = 0;
+    @JsonProperty("total_invoice") private float total_invoice = 0;
+    @JsonProperty("total_items") private float total_items = 0;
 
     @JsonCreator
     public OrderSellerView() {
@@ -25,13 +25,13 @@ public class OrderSellerView {
 
     @JsonCreator
     public OrderSellerView(
-            @JsonProperty("sellerId") long sellerId,
+            @JsonProperty("sellerId") int sellerId,
             @JsonProperty("count_items") int count_items,
-            @JsonProperty("total_amount") double total_amount,
-            @JsonProperty("total_freight") double total_freight,
-            @JsonProperty("total_incentive") double total_incentive,
-            @JsonProperty("total_invoice") double total_invoice,
-            @JsonProperty("total_items") double total_items) {
+            @JsonProperty("total_amount") float total_amount,
+            @JsonProperty("total_freight") float total_freight,
+            @JsonProperty("total_incentive") float total_incentive,
+            @JsonProperty("total_invoice") float total_invoice,
+            @JsonProperty("total_items") float total_items) {
           this.sellerId = sellerId;
           this.count_items = count_items;
           this.total_amount = total_amount;

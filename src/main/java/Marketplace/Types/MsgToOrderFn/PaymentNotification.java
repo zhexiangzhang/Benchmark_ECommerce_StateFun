@@ -23,13 +23,13 @@ public class PaymentNotification {
                     bytes -> mapper.readValue(bytes, PaymentNotification.class));
 
     @JsonProperty("orderId")
-    private long orderId;
+    private int orderId;
 
     @JsonProperty("orderStatus")
     private Enums.OrderStatus orderStatus;
 
     @JsonCreator
-    public PaymentNotification(@JsonProperty("orderId") long orderId,
+    public PaymentNotification(@JsonProperty("orderId") int orderId,
                             @JsonProperty("orderStatus") Enums.OrderStatus orderStatus) {
         this.orderId = orderId;
         this.orderStatus = orderStatus;

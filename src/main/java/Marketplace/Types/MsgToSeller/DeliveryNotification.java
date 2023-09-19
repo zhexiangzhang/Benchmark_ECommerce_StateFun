@@ -29,19 +29,19 @@ public class DeliveryNotification {
                     bytes -> mapper.readValue(bytes, DeliveryNotification.class));
 
     @JsonProperty("orderId")
-    private long orderId;
+    private int orderId;
 
     @JsonProperty("customerId")
-    private long customerId;
+    private int customerId;
 
     @JsonProperty("sellerId")
-    private long sellerId;
+    private int sellerId;
 
     @JsonProperty("packageId")
-    private long packageId;
+    private int packageId;
 
     @JsonProperty("productID")
-    private long productID;
+    private int productID;
 
     @JsonProperty("productName")
     private String productName;
@@ -55,11 +55,11 @@ public class DeliveryNotification {
     private LocalDateTime eventDate;
 
     @JsonCreator
-    public DeliveryNotification(@JsonProperty("customerID") long customerID,
-                                @JsonProperty("orderId") long orderId,
-                                @JsonProperty("packageId") long packageId,
-                                @JsonProperty("sellerId") long sellerId,
-                                @JsonProperty("productID") long productID,
+    public DeliveryNotification(@JsonProperty("customerID") int customerID,
+                                @JsonProperty("orderId") int orderId,
+                                @JsonProperty("packageId") int packageId,
+                                @JsonProperty("sellerId") int sellerId,
+                                @JsonProperty("productID") int productID,
                                 @JsonProperty("productName") String productName,
                                 @JsonProperty("Status") Enums.PackageStatus packageStatus,
                                 @JsonProperty("eventDate") LocalDateTime eventDate) {

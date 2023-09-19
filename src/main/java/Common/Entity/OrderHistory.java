@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 public class OrderHistory {
 
 //    @JsonProperty("id") private long id;
-    @JsonProperty("orderId") private long orderId;
+    @JsonProperty("orderId") private int orderId;
     @JsonProperty("status") private Enums.OrderStatus status;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
@@ -32,7 +32,7 @@ public class OrderHistory {
     }
 
     @JsonCreator
-    public OrderHistory(@JsonProperty("orderId") long orderId,
+    public OrderHistory(@JsonProperty("orderId") int orderId,
                         @JsonProperty("created_at") LocalDateTime created_at,
                         @JsonProperty("status") Enums.OrderStatus status) {
         this.orderId = orderId;

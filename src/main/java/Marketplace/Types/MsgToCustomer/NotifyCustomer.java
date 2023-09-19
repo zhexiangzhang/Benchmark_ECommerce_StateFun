@@ -23,13 +23,13 @@ public class NotifyCustomer {
                     mapper::writeValueAsBytes,
                     bytes -> mapper.readValue(bytes, NotifyCustomer.class));
 
-    @JsonProperty("customerId") private long customerId;
+    @JsonProperty("customerId") private int customerId;
     @JsonProperty("order") private Order order;
     @JsonProperty("notifyType") private Enums.NotificationType notifyType;
     @JsonProperty("numDeliveries") private int numDeliveries = 0;
 
     @JsonCreator
-    public NotifyCustomer(@JsonProperty("customerId") long customerId,
+    public NotifyCustomer(@JsonProperty("customerId") int customerId,
                           @JsonProperty("order") Order order,
                           @JsonProperty("notifyType") Enums.NotificationType notifyType) {
         this.customerId = customerId;

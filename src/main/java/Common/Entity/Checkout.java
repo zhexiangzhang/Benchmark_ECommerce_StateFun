@@ -36,12 +36,12 @@ public class Checkout {
     private LocalDateTime createdAt;
 
     @JsonProperty("customerCheckout") private CustomerCheckout customerCheckout;
-    @JsonProperty("items") private Map<Long, BasketItem> items;
+    @JsonProperty("items") private Map<Integer, BasketItem> items;
 
     @JsonCreator
     public Checkout (@JsonProperty("createdAt") LocalDateTime createdAt,
                      @JsonProperty("customerCheckout") CustomerCheckout customerCheckout,
-                     @JsonProperty("items") Map<Long, BasketItem> items) {
+                     @JsonProperty("items") Map<Integer, BasketItem> items) {
         this.createdAt = createdAt;
         this.customerCheckout = customerCheckout;
         this.items = items;

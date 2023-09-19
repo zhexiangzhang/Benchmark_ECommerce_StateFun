@@ -29,37 +29,37 @@ public class OrderState {
                     bytes -> mapper.readValue(bytes, OrderState.class));
 
     @JsonProperty("orders")
-    public Map<Long, Order> orders = new HashMap<>();
+    public Map<Integer, Order> orders = new HashMap<>();
 
     // 集合
     @JsonProperty("orderItems")
     public Set<OrderItem> orderItems = new HashSet<>();
 
     @JsonProperty("orderHistory")
-    public TreeMap<Long, List<OrderHistory>> orderHistory = new TreeMap<>();
+    public TreeMap<Integer, List<OrderHistory>> orderHistory = new TreeMap<>();
 
     @JsonProperty("customerOrderID")
-    public Map<Long, Long> customerOrderID = new HashMap<>();
+    public Map<Integer, Integer> customerOrderID = new HashMap<>();
 
     @JsonIgnore
-    public void addOrder(long orderId, Order order) {
+    public void addOrder(int orderId, Order order) {
         orders.put(orderId, order);
     }
 
     @JsonIgnore
-    public long generateCustomerNextOrderID(long customerId) {
+    public int generateCustomerNextOrderID(int customerId) {
         if (!customerOrderID.containsKey(customerId)) {
-            customerOrderID.put(customerId, 1L);
-            return 1L;
+            customerOrderID.put(customerId, 1);
+            return 1;
         } else {
-            long newId = customerOrderID.get(customerId) + 1;
+            int newId = customerOrderID.get(customerId) + 1;
             customerOrderID.put(customerId, newId);
             return newId;
         }
     }
 
     @JsonIgnore
-    public void addOrderHistory(long orderId, OrderHistory orderHistory) {
+    public void addOrderHistory(int orderId, OrderHistory orderHistory) {
         if (this.orderHistory.containsKey(orderId)) {
             this.orderHistory.get(orderId).add(orderHistory);
         } else {

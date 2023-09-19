@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 
 @Data
 public class StockItem {
-    @JsonProperty("product_id") private Long product_id;
-    @JsonProperty("seller_id") private Long seller_id;
+    @JsonProperty("product_id") private int product_id;
+    @JsonProperty("seller_id") private int seller_id;
     @JsonProperty("qty_available") private int qty_available;
     @JsonProperty("qty_reserved") private int qty_reserved;
     @JsonProperty("order_count") private int order_count;
@@ -34,8 +34,8 @@ public class StockItem {
     private LocalDateTime updatedAt;
 
     @JsonCreator
-    public StockItem(@JsonProperty("product_id") Long product_id,
-                     @JsonProperty("seller_id") Long seller_id,
+    public StockItem(@JsonProperty("product_id") int product_id,
+                     @JsonProperty("seller_id") int seller_id,
                      @JsonProperty("qty_available") int qty_available,
                      @JsonProperty("qty_reserved") int qty_reserved,
                      @JsonProperty("order_count") int order_count,

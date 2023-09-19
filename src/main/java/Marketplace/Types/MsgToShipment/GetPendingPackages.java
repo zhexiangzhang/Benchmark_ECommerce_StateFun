@@ -23,10 +23,10 @@ public class GetPendingPackages {
                     bytes -> mapper.readValue(bytes, GetPendingPackages.class));
 
     @JsonProperty("sellerID")
-    private long sellerID;
+    private int sellerID;
 
     @JsonCreator
-    public GetPendingPackages(@JsonProperty("sellerID") long sellerID) {
+    public GetPendingPackages(@JsonProperty("sellerID") int sellerID) {
         this.sellerID = sellerID;
     }
 }

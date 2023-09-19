@@ -100,7 +100,7 @@ public class ProductFn implements StatefulFunction {
 
     private void onUpdateProduct(Context context, Message message) {
         UpdateProduct updateProduct = message.as(UpdateProduct.TYPE);
-        Long productId = updateProduct.getProduct_id();
+        int productId = updateProduct.getProduct_id();
 
         String log_ = getPartionText(context.self().id())
                 + "update product [receive], " + "tid : " + updateProduct.getVersion() + "\n";
@@ -136,7 +136,7 @@ public class ProductFn implements StatefulFunction {
 
     private void onUpdatePrice(Context context, Message message) {
         UpdateSinglePrice updatePrice = message.as(UpdateSinglePrice.TYPE);
-        Long productId = updatePrice.getProductId();
+        int productId = updatePrice.getProductId();
 
 //        logger.info("[receive] {tid=" + updatePrice.getInstanceId() + "} update product, productFn " + context.self().id());
         String log_ = getPartionText(context.self().id())
@@ -170,7 +170,7 @@ public class ProductFn implements StatefulFunction {
         }
 
         int tid = updatePrice.getInstanceId();
-        long sellerId = updatePrice.getSellerId();
+        int sellerId = updatePrice.getSellerId();
 
         Utils.notifyTransactionComplete(context,
                 Enums.TransactionType.updatePriceTask.toString(),

@@ -25,7 +25,7 @@ public class ConfirmStockEvent {
                     bytes -> mapper.readValue(bytes, ConfirmStockEvent.class));
 
     @JsonProperty("productId")
-    long productId;
+    int productId;
 
     @JsonProperty("quantity")
     int quantity;
@@ -38,7 +38,7 @@ public class ConfirmStockEvent {
 
     @JsonCreator
     public ConfirmStockEvent(@JsonProperty("uniqueOrderId") String uniqueOrderId,
-                             @JsonProperty("productId") long productId,
+                             @JsonProperty("productId") int productId,
                              @JsonProperty("quantity") int quantity,
                              @JsonProperty("OrderStatus") Enums.OrderStatus OrderStatus
 

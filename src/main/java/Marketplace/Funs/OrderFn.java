@@ -28,8 +28,8 @@ public class OrderFn implements StatefulFunction {
     Logger logger = Logger.getLogger("OrderFn");
 
     // generate unique Identifier
-    static final ValueSpec<Long> ORDERIDSTATE = ValueSpec.named("orderId").withLongType();
-    static final ValueSpec<Long> ORDERHISTORYIDSTATE = ValueSpec.named("orderHistoryId").withLongType();
+    static final ValueSpec<Integer> ORDERIDSTATE = ValueSpec.named("orderId").withIntType();
+    static final ValueSpec<Integer> ORDERHISTORYIDSTATE = ValueSpec.named("orderHistoryId").withIntType();
     // store checkout info
     static final ValueSpec<CustomerCheckoutInfoState> TEMPCKINFOSTATE = ValueSpec.named("tempCKInfoState").withCustomType(CustomerCheckoutInfoState.TYPE);
     // tmp store async task state
@@ -90,15 +90,15 @@ public class OrderFn implements StatefulFunction {
         return context.storage().get(ORDERSTATE).orElse(new OrderState());
     }
 
-    private Long generateNextOrderID(Context context) {
-        Long nextId = context.storage().get(ORDERIDSTATE).orElse(0L) + 1;
+    private int generateNextOrderID(Context context) {
+        int nextId = context.storage().get(ORDERIDSTATE).orElse(0) + 1;
         context.storage().set(ORDERIDSTATE, nextId);
         // different partitionId may have same orderId, so we add partitionId number at beginning
         return nextId;
     }
 
-    private Long generateNextOrderHistoryID(Context context) {
-        Long nextId = context.storage().get(ORDERHISTORYIDSTATE).orElse(0L) + 1;
+    private int generateNextOrderHistoryID(Context context) {
+        int nextId = context.storage().get(ORDERHISTORYIDSTATE).orElse(0) + 1;
         context.storage().set(ORDERHISTORYIDSTATE, nextId);
         return nextId;
     }
@@ -128,8 +128,8 @@ public class OrderFn implements StatefulFunction {
         CustomerCheckoutInfoState customerCkoutInfo_State = getTempCKInfoState(context);
         Checkout checkout = message.as(Checkout.TYPE);
         // get fields
-        Map<Long, BasketItem> items = checkout.getItems();
-        long customerId = checkout.getCustomerCheckout().getCustomerId();
+        Map<Integer, BasketItem> items = checkout.getItems();
+        int customerId = checkout.getCustomerCheckout().getCustomerId();
         int nItems = items.size();
 
         // change state
@@ -140,7 +140,7 @@ public class OrderFn implements StatefulFunction {
         context.storage().set(TEMPCKINFOSTATE, customerCkoutInfo_State);
 
         // send message to stock
-        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
+        for (Map.Entry<Integer, BasketItem> entry : items.entrySet()) {
             int stockPartitionId = (int) (entry.getValue().getProductId());
             Utils.sendMessage(context,
                     StockFn.TYPE,
@@ -173,7 +173,7 @@ public class OrderFn implements StatefulFunction {
         ReserveStockTaskState resvTask_State = getAtptResvTaskState(context);
 
         // get fields
-        long customerId = reserveStockEvent.getCustomerId();
+        int customerId = reserveStockEvent.getCustomerId();
 
         // change state
         resvTask_State.addCompletedSubTask(customerId, reserveStockEvent);
@@ -186,8 +186,8 @@ public class OrderFn implements StatefulFunction {
 
             // get fields
             Checkout checkout = customerCheckoutInfoState.getSingleCheckout(customerId);
-            Map<Long, BasketItem> itemsSuccessResv = resvTask_State.getSingleSuccessResvItems(customerId);
-            Map<Long, BasketItem> itemsFailedResv = resvTask_State.getSingleFailedResvItems(customerId);;
+            Map<Integer, BasketItem> itemsSuccessResv = resvTask_State.getSingleSuccessResvItems(customerId);
+            Map<Integer, BasketItem> itemsFailedResv = resvTask_State.getSingleFailedResvItems(customerId);;
             Checkout checkoutSuccess = new Checkout(checkout.getCreatedAt(), checkout.getCustomerCheckout(), itemsSuccessResv);
             Checkout checkoutFailed = new Checkout(checkout.getCreatedAt(), checkout.getCustomerCheckout(), itemsFailedResv);
 
@@ -242,36 +242,36 @@ public class OrderFn implements StatefulFunction {
 //    =================================================================================
 
     private void generateOrder(Context context, Checkout successCheckout) {
-        long orderId = generateNextOrderID(context);
-        Map<Long, BasketItem> items = successCheckout.getItems();
+        int orderId = generateNextOrderID(context);
+        Map<Integer, BasketItem> items = successCheckout.getItems();
 
         // calculate total freight_value
-        double total_freight_value = 0;
-        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
+        float total_freight_value = 0;
+        for (Map.Entry<Integer, BasketItem> entry : items.entrySet()) {
             BasketItem item = entry.getValue();
             total_freight_value += item.getFreightValue();
         }
 
         //  calculate total amount
-        double total_amount = 0;
+        float total_amount = 0;
 
-        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
+        for (Map.Entry<Integer, BasketItem> entry : items.entrySet()) {
             BasketItem item = entry.getValue();
-            double amount = item.getUnitPrice() * item.getQuantity();
+            float amount = item.getUnitPrice() * item.getQuantity();
             total_amount = total_amount + amount;
         }
 
         // total before discounts
-        double total_items = total_amount;
+        float total_items = total_amount;
 //
         // apply vouchers per product, but only until total >= 0 for each item
-        Map<Long, Double> totalPerItem = new HashMap<>();
-        double total_incentive = 0;
-        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
+        Map<Integer, Float> totalPerItem = new HashMap<>();
+        float total_incentive = 0;
+        for (Map.Entry<Integer, BasketItem> entry : items.entrySet()) {
             BasketItem item = entry.getValue();
 
-            double total_item = item.getUnitPrice() * item.getQuantity();
-            double vouchers = item.getVouchers();
+            float total_item = item.getUnitPrice() * item.getQuantity();
+            float vouchers = item.getVouchers();
 
             if (total_item - vouchers > 0) {
                 total_amount = total_amount - vouchers;
@@ -288,7 +288,7 @@ public class OrderFn implements StatefulFunction {
         // get state
         OrderState orderState = getOrderState(context);
 
-        long customerId = successCheckout.getCustomerCheckout().getCustomerId();
+        int customerId = successCheckout.getCustomerCheckout().getCustomerId();
         LocalDateTime now = LocalDateTime.now();
 
         StringBuilder invoiceNumber = new StringBuilder();
@@ -326,7 +326,7 @@ public class OrderFn implements StatefulFunction {
         // add orderItems and create invoice
         List<OrderItem> invoiceItems = new ArrayList<>();
         int order_item_id = 0;
-        for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
+        for (Map.Entry<Integer, BasketItem> entry : items.entrySet()) {
 
             BasketItem item = entry.getValue();
             OrderItem oim = new OrderItem(
@@ -356,7 +356,7 @@ public class OrderFn implements StatefulFunction {
 
 
         CustomerCheckout customerCheckout = successCheckout.getCustomerCheckout();
-        long orderID = successOrder.getId();
+        int orderID = successOrder.getId();
         String invoiceNumber_ = invoiceNumber.toString();
         String orderPartitionID = context.self().id();
 
@@ -371,8 +371,8 @@ public class OrderFn implements StatefulFunction {
         );
 
         // send message to paymentFn to pay the invoice
-//        long paymentPation = orderId % Constants.nPaymentPartitions;
-        long paymentPation = customerId;
+//        int paymentPation = orderId % Constants.nPaymentPartitions;
+        int paymentPation = customerId;
         Utils.sendMessage(context,
                 PaymentFn.TYPE,
                 String.valueOf(paymentPation),
@@ -381,10 +381,10 @@ public class OrderFn implements StatefulFunction {
 
         // send sellerInvoices to each seller
 
-        Map<Long, Invoice> sellerInvoices = new HashMap<>();
+        Map<Integer, Invoice> sellerInvoices = new HashMap<>();
 
         for (OrderItem item : invoiceItems) {
-            long sellerId = item.getSellerId();
+            int sellerId = item.getSellerId();
             if (!sellerInvoices.containsKey(sellerId)) {
                 Invoice sellerInvoice = new Invoice(
                         customerCheckout,
@@ -400,10 +400,10 @@ public class OrderFn implements StatefulFunction {
             sellerInvoices.get(sellerId).getItems().add(item);
         }
 
-        for (Map.Entry<Long, Invoice> entry : sellerInvoices.entrySet()) {
-            long sellerId = entry.getKey();
+        for (Map.Entry<Integer, Invoice> entry : sellerInvoices.entrySet()) {
+            int sellerId = entry.getKey();
             Invoice sellerInvoice = entry.getValue();
-            long sellerPartition = sellerId;
+            int sellerPartition = sellerId;
             Utils.sendMessage(context,
                     SellerFn.TYPE,
                     String.valueOf(sellerPartition),
@@ -415,11 +415,11 @@ public class OrderFn implements StatefulFunction {
     private void ProcessShipmentNotification(Context context, Message message) {
 
         OrderState orderState = getOrderState(context);
-        Map<Long, Order> orders = orderState.getOrders();
-        TreeMap<Long, List<OrderHistory>> orderHistories = orderState.getOrderHistory();
+        Map<Integer, Order> orders = orderState.getOrders();
+        TreeMap<Integer, List<OrderHistory>> orderHistories = orderState.getOrderHistory();
 
         ShipmentNotification shipmentNotification = message.as(ShipmentNotification.TYPE);
-        long orderId = shipmentNotification.getOrderId();
+        int orderId = shipmentNotification.getOrderId();
 
         if (!orders.containsKey(orderId)) {
             String str = new StringBuilder().append("Order ").append(orderId)
@@ -454,10 +454,10 @@ public class OrderFn implements StatefulFunction {
 //        UpdateOrderStatus(context, orderId, status, eventTime);
     }
 
-    private void UpdateOrderStatus(Context context, long orderId, Enums.OrderStatus status) {
+    private void UpdateOrderStatus(Context context, int orderId, Enums.OrderStatus status) {
         OrderState orderState = getOrderState(context);
-        Map<Long, Order> orders = orderState.getOrders();
-        TreeMap<Long, List<OrderHistory>> orderHistories = orderState.getOrderHistory();
+        Map<Integer, Order> orders = orderState.getOrders();
+        TreeMap<Integer, List<OrderHistory>> orderHistories = orderState.getOrderHistory();
 
         if (!orders.containsKey(orderId)) {
             String str = new StringBuilder().append("Order ").append(orderId)
@@ -486,12 +486,6 @@ public class OrderFn implements StatefulFunction {
             default:
                 break;
         }
-
-//        if (status != Enums.OrderStatus.CANCLED) {
-//            long historyId = generateNextOrderHistoryID(context);
-//            OrderHistory orderHistory = new OrderHistory(historyId, now, status);
-//            orderHistories.get(orderId).add(orderHistory);
-//        }
 
         context.storage().set(ORDERSTATE, orderState);
 

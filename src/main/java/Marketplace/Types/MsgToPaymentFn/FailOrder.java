@@ -26,17 +26,17 @@ public class FailOrder {
                     bytes -> mapper.readValue(bytes, FailOrder.class));
 
     @JsonProperty("customerId")
-    private long customerId;
+    private int customerId;
 
     @JsonProperty("orderId")
-    private long orderId;
+    private int orderId;
 
     public FailOrder() {
     }
 
     @JsonCreator
-    public FailOrder(@JsonProperty("customerId") long customerId,
-                     @JsonProperty("orderId") long orderId) {
+    public FailOrder(@JsonProperty("customerId") int customerId,
+                     @JsonProperty("orderId") int orderId) {
         this.customerId = customerId;
         this.orderId = orderId;
     }

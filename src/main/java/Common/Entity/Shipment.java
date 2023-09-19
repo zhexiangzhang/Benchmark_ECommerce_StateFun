@@ -16,12 +16,12 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class Shipment {
-    @JsonProperty("shipmentId") private long shipmentId;
-    @JsonProperty("orderId") private long orderId;
-    @JsonProperty("customerId") private long customerId;
+    @JsonProperty("shipmentId") private int shipmentId;
+    @JsonProperty("orderId") private int orderId;
+    @JsonProperty("customerId") private int customerId;
     @JsonProperty("packageCnt") private int packageCnt;
-    @JsonProperty("totalFreight") private double totalFreight;
-    @JsonProperty("orderPartition") private long orderPartition;
+    @JsonProperty("totalFreight") private float totalFreight;
+    @JsonProperty("orderPartition") private int orderPartition;
 
     @JsonProperty("firstName") private String firstName;
     @JsonProperty("lastName") private String lastName;
@@ -36,12 +36,12 @@ public class Shipment {
 
     @JsonCreator
     public Shipment(
-            @JsonProperty("shipmentId") long shipmentId,
-            @JsonProperty("orderId") long orderId,
-            @JsonProperty("customerId") long customerId,
+            @JsonProperty("shipmentId") int shipmentId,
+            @JsonProperty("orderId") int orderId,
+            @JsonProperty("customerId") int customerId,
             @JsonProperty("packageCnt") int packageCnt,
 
-            @JsonProperty("totalFreight") double totalFreight,
+            @JsonProperty("totalFreight") float totalFreight,
             @JsonProperty("requestDate") LocalDateTime requestDate,
             @JsonProperty("status") Enums.ShipmentStatus status,
             @JsonProperty("firstName") String firstName,
@@ -49,7 +49,7 @@ public class Shipment {
             @JsonProperty("street") String street,
 
 //            @JsonProperty("orderId") long orderId,
-            @JsonProperty("orderPartition") long orderPartition,
+            @JsonProperty("orderPartition") int orderPartition,
 
             @JsonProperty("zipCode") String zipCode,
             @JsonProperty("city") String city,

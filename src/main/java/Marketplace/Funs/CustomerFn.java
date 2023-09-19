@@ -94,7 +94,7 @@ public class CustomerFn implements StatefulFunction {
 
     private void onGetCustomer(Context context, Message message) {
         GetCustomer getCustomer = message.as(GetCustomer.TYPE);
-        long customerId = getCustomer.getCustomerId();
+        int customerId = getCustomer.getCustomerId();
         CustomerState customerState = getCustomerState(context);
         Customer customer = customerState.getCustomerById(customerId);
 
@@ -116,7 +116,7 @@ public class CustomerFn implements StatefulFunction {
 
     private void onhandleNotifyCustomer(Context context, Message message) {
         NotifyCustomer notifyCustomer = message.as(NotifyCustomer.TYPE);
-        long customerId = notifyCustomer.getCustomerId();
+        int customerId = notifyCustomer.getCustomerId();
         Order order = notifyCustomer.getOrder();
         Enums.NotificationType notificationType = notifyCustomer.getNotifyType();
 
@@ -164,7 +164,7 @@ public class CustomerFn implements StatefulFunction {
     private void onhandleDeliveryNotification(Context context, Message message) {
         CustomerState customerState = getCustomerState(context);
         DeliveryNotification deliveryNotification = message.as(DeliveryNotification.TYPE);
-        long customerId = deliveryNotification.getCustomerId();
+        int customerId = deliveryNotification.getCustomerId();
         Customer customer = customerState.getCustomerById(customerId);
         customer.setDeliveryCount(customer.getDeliveryCount() + 1);
     }

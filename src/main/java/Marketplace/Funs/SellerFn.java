@@ -72,7 +72,7 @@ public class SellerFn implements StatefulFunction {
             // xxxxx ---> seller
             else if (message.is(Types.stringType())) {
                 String result = message.as(Types.stringType());
-                Long sellerId = Long.parseLong(context.self().id());
+                int sellerId = Integer.parseInt(context.self().id());
                 String log = String.format(getPartionText(context.self().id())
                                 + "sellerId: %s, result: %s\n",
                         sellerId, result);
@@ -128,7 +128,7 @@ public class SellerFn implements StatefulFunction {
     private void onIncrStockAsyncBegin(Context context, Message message) {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
         StockItem stockItem = increaseStock.getStockItem();
-        long productId = stockItem.getProduct_id();
+        int productId = stockItem.getProduct_id();
 //        int prodFnPartitionID = (int) (productId % Constants.nProductPartitions);
         int prodFnPartitionID = (int) (productId);
 //        sendGetProdMsgToProdFn(context, increaseStock, prodFnPartitionID);
@@ -146,8 +146,8 @@ public class SellerFn implements StatefulFunction {
 
         Invoice invoice = invoiceIssued.getInvoice();
         List<OrderItem> orderItems = invoice.getItems();
-        long sellerId = sellerState.getSeller().getId();
-        long orderId = invoice.getOrderID();
+        int sellerId = sellerState.getSeller().getId();
+        int orderId = invoice.getOrderID();
 
         for (OrderItem orderItem : orderItems) {
             OrderEntry orderEntry = new OrderEntry(
@@ -196,9 +196,9 @@ public class SellerFn implements StatefulFunction {
         SellerState sellerState = getSellerState(context);
 
         Set<OrderEntry> orderEntries = sellerState.getOrderEntries();
-        Map<Long, OrderEntryDetails> orderEntryDetails = sellerState.getOrderEntryDetails();
+        Map<Integer, OrderEntryDetails> orderEntryDetails = sellerState.getOrderEntryDetails();
 
-        long sellerID = sellerState.getSeller().getId();
+        int sellerID = sellerState.getSeller().getId();
         int tid = message.as(QueryDashboard.TYPE).getTid();
 //        logger.info("[receive] {tid=" + tid + "} query dashboard, sellerFn " + context.self().id());
         String log = getPartionText(context.self().id())
@@ -208,11 +208,11 @@ public class SellerFn implements StatefulFunction {
         OrderSellerView orderSellerView = new OrderSellerView(
                 sellerID,
                 orderEntries.size(),
-                orderEntries.stream().mapToDouble(OrderEntry::getTotalAmount).sum(),
-                orderEntries.stream().mapToDouble(OrderEntry::getFreight_value).sum(),
-                orderEntries.stream().mapToDouble(OrderEntry::getTotalIncentive).sum(),
-                orderEntries.stream().mapToDouble(OrderEntry::getTotalInvoice).sum(),
-                orderEntries.stream().mapToDouble(OrderEntry::getTotalItems).sum()
+                (float) orderEntries.stream().mapToDouble(OrderEntry::getTotalAmount).sum(),
+                (float) orderEntries.stream().mapToDouble(OrderEntry::getFreight_value).sum(),
+                (float) orderEntries.stream().mapToDouble(OrderEntry::getTotalIncentive).sum(),
+                (float) orderEntries.stream().mapToDouble(OrderEntry::getTotalInvoice).sum(),
+                (float) orderEntries.stream().mapToDouble(OrderEntry::getTotalItems).sum()
         );
 
         Set<OrderEntry> queryEnTry = new HashSet<>();
@@ -252,7 +252,7 @@ public class SellerFn implements StatefulFunction {
         SellerState sellerState = getSellerState(context);
         PaymentNotification orderStateUpdate = message.as(PaymentNotification.TYPE);
 
-        long orderId = orderStateUpdate.getOrderId();
+        int orderId = orderStateUpdate.getOrderId();
 //        if (orderId != sellerState.getSeller().getId()) {
 //            throw new RuntimeException("sellerId != orderId");
 //        }

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Getter
 public class OrderEntryDetails {
     // primary key
-    @JsonProperty("OrderId") private long orderId;
+    @JsonProperty("OrderId") private int orderId;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -25,7 +25,7 @@ public class OrderEntryDetails {
 
     @JsonProperty("order_status") private Enums.OrderStatus order_status;
 
-    @JsonProperty("CustomerId") private long customerId;
+    @JsonProperty("CustomerId") private int customerId;
     @JsonProperty("FirstName") private String firstName;
     @JsonProperty("LastName") private String lastName;
     @JsonProperty("Street") private String street;
@@ -39,10 +39,10 @@ public class OrderEntryDetails {
 
     @JsonCreator
     public OrderEntryDetails(
-            @JsonProperty("OrderId") long orderId,
+            @JsonProperty("OrderId") int orderId,
             @JsonProperty("order_date") LocalDateTime order_date,
             @JsonProperty("order_status") Enums.OrderStatus order_status,
-            @JsonProperty("CustomerId") long customerId,
+            @JsonProperty("CustomerId") int customerId,
             @JsonProperty("FirstName") String firstName,
             @JsonProperty("LastName") String lastName,
             @JsonProperty("Street") String street,

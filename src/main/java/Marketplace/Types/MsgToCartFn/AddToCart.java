@@ -27,12 +27,12 @@ public class AddToCart {
 //    @JsonProperty("customerId")
 //    private Long customerId;
 
-    @JsonProperty("SellerId") private long sellerId;
-    @JsonProperty("ProductId") private long productId;
+    @JsonProperty("SellerId") private int sellerId;
+    @JsonProperty("ProductId") private int productId;
 
     @JsonProperty("ProductName") private String productName;
-    @JsonProperty("UnitPrice") private double unitPrice;
-    @JsonProperty("FreightValue") private double freightValue; //运费
+    @JsonProperty("UnitPrice") private float unitPrice;
+    @JsonProperty("FreightValue") private float freightValue; //运费
 
     @JsonProperty("Quantity") private int quantity;
     @JsonProperty("Voucher") private float vouchers;
@@ -43,11 +43,11 @@ public class AddToCart {
     }
 
     @JsonCreator
-    public AddToCart(@JsonProperty("SellerId") long sellerId,
-                      @JsonProperty("ProductId") long productId,
+    public AddToCart(@JsonProperty("SellerId") int sellerId,
+                      @JsonProperty("ProductId") int productId,
                       @JsonProperty("ProductName") String productName,
-                      @JsonProperty("UnitPrice") double unitPrice,
-                      @JsonProperty("FreightValue") double freightValue,
+                      @JsonProperty("UnitPrice") float unitPrice,
+                      @JsonProperty("FreightValue") float freightValue,
                       @JsonProperty("Quantity") int quantity,
                       @JsonProperty("Voucher") float vouchers,
                       @JsonProperty("Version") int version

@@ -9,7 +9,7 @@ import lombok.Setter;
 public class Seller
 {
     @JsonProperty("id")
-    public long id;
+    public int id;
     @JsonProperty("name")
     public String name;
     @JsonProperty("company_name")
@@ -32,7 +32,7 @@ public class Seller
     public String city;
     @JsonProperty("state")
     public String state;
-    @JsonProperty("zip_code_prefix")
+    @JsonProperty("zip_code")
     public String zip_code;
 
 //    这个字段应该删除了

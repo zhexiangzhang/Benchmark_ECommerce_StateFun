@@ -41,7 +41,7 @@ public class CartState {
     @JsonProperty("status")
     public Status status;
     @JsonProperty("items")
-    public Map<Long, BasketItem> items; //     private final Map<Long, BasketItem> items;
+    public Map<Integer, BasketItem> items; //     private final Map<Long, BasketItem> items;
     @JsonProperty("currentTransactionId")
     public int currentTransactionId;
 
@@ -64,7 +64,7 @@ public class CartState {
 
 //    写一个方法，接受Long和BasketItem，给items添加一个元素
     @JsonIgnore
-    public void addItem(Long itemId, BasketItem item) {
+    public void addItem(int itemId, BasketItem item) {
         if (this.items.containsKey(itemId)) {
             this.items.replace(itemId, item);
         }
@@ -80,7 +80,7 @@ public class CartState {
     @JsonIgnore
     public String getCartConent() {
     StringBuilder sb = new StringBuilder();
-        for (Map.Entry<Long, BasketItem> entry : this.items.entrySet()) {
+        for (Map.Entry<Integer, BasketItem> entry : this.items.entrySet()) {
             sb.append("  " + entry.getValue().toString());
             sb.append("\n");
         }

@@ -104,7 +104,7 @@ public class PaymentFn implements StatefulFunction {
                 + " asking for payment for order: " + invoice.getOrderID();
 //        showLogPrt(log);
 
-        long orderId = invoice.getOrderID();
+        int orderId = invoice.getOrderID();
         LocalDateTime now = LocalDateTime.now();
 
         String orderPartition = invoice.getOrderPartitionID();
@@ -150,8 +150,8 @@ public class PaymentFn implements StatefulFunction {
 
         // send message to stock
         for (OrderItem item : invoice.getItems()) {
-//            long partition = (item.getProductId() % Constants.nStockPartitions);
-            long partition = item.getProductId();
+//            int partition = (item.getProductId() % Constants.nStockPartitions);
+            int partition = item.getProductId();
             Utils.sendMessage(
                     context,
                     StockFn.TYPE,
@@ -165,11 +165,11 @@ public class PaymentFn implements StatefulFunction {
             );
         }
 
-        long customerId = customerCheckout.getCustomerId();
+        int customerId = customerCheckout.getCustomerId();
         List<OrderItem> items = invoice.getItems();
-        List<Long> sellerIds = new ArrayList<>();
+        List<Integer> sellerIds = new ArrayList<>();
         for (OrderItem item : items) {
-            long sellerId = item.getSellerId();
+            int sellerId = item.getSellerId();
             if (!sellerIds.contains(sellerId)) {
                 sellerIds.add(sellerId);
             }
@@ -177,7 +177,8 @@ public class PaymentFn implements StatefulFunction {
 
         if (orderStatus == Enums.OrderStatus.PAYMENT_PROCESSED) {
 
-            long shipmentPartition = orderId % Constants.nShipmentPartitions;
+            int shipmentPartition = customerId % Constants.nShipmentPartitions;
+            System.out.println("** customer id: " + customerId + " order id: " + orderId + " shippment partition: " + shipmentPartition);
 
             Utils.sendMessage(context, OrderFn.TYPE, String.valueOf(orderPartition),
                     PaymentNotification.TYPE,
@@ -194,7 +195,7 @@ public class PaymentFn implements StatefulFunction {
                     new ProcessShipment(invoice, transactionID)
             );
 
-            for (Long sellerId : sellerIds) {
+            for (int sellerId : sellerIds) {
                 Utils.sendMessage(context, SellerFn.TYPE, String.valueOf(sellerId),
                         PaymentNotification.TYPE,
                         new PaymentNotification(orderId, Enums.OrderStatus.PAYMENT_PROCESSED)
@@ -213,7 +214,7 @@ public class PaymentFn implements StatefulFunction {
                     new PaymentNotification(orderId, Enums.OrderStatus.PAYMENT_FAILED)
             );
 
-            for (Long sellerId : sellerIds) {
+            for (int sellerId : sellerIds) {
                 Utils.sendMessage(context, SellerFn.TYPE, String.valueOf(sellerId),
                         PaymentNotification.TYPE,
                         new PaymentNotification(orderId, Enums.OrderStatus.PAYMENT_FAILED)

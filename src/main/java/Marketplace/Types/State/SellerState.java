@@ -38,18 +38,15 @@ public class SellerState {
     public Seller seller;
 
     @JsonProperty("orderEntriesHistory")
-//    public Map<Long, OrderEntry> orderEntriesHistory;
     public Set<OrderEntry> orderEntriesHistory;
 
     // entry in process, only for INVOICED / PAYMENT_PORCESSED / READY_FOR_SHIPMENT / IN_TRANSIT
     @JsonProperty("orderEntries")
-//    public Map<Long, OrderEntry> orderEntries;
     public Set<OrderEntry> orderEntries;
 
     // DELIVERED
     @JsonProperty("OrderEntryDetails")
-    public Map<Long, OrderEntryDetails> orderEntryDetails;
-//    public Set<OrderEntryDetails> orderEntryDetails;
+    public Map<Integer, OrderEntryDetails> orderEntryDetails;
 
     @JsonCreator
     public SellerState() {
@@ -65,19 +62,19 @@ public class SellerState {
     }
 
     @JsonIgnore
-    public void addOrderEntryDetails(long orderId, OrderEntryDetails orderEntryDetails) {
+    public void addOrderEntryDetails(int orderId, OrderEntryDetails orderEntryDetails) {
         this.orderEntryDetails.put(orderId, orderEntryDetails);
     }
 
     @JsonIgnore
-    public void moveOrderEntryToHistory(long orderEntryId) {
+    public void moveOrderEntryToHistory(int orderEntryId) {
         OrderEntry orderEntry = this.orderEntries.stream().filter(o -> o.getOrder_id() == orderEntryId).findFirst().get();
         this.orderEntries.remove(orderEntry);
         this.orderEntriesHistory.add(orderEntry);
     }
 
     @JsonIgnore
-    public void updateOrderStatus(long orderEntryId, Enums.OrderStatus orderStatus, LocalDateTime updateTime) {
+    public void updateOrderStatus(int orderEntryId, Enums.OrderStatus orderStatus, LocalDateTime updateTime) {
         // 更新orderEntries,如果更新后的不属于only for INVOICED / PAYMENT_PORCESSED / READY_FOR_SHIPMENT / IN_TRANSIT，
         // 则将其移动到orderEntriesHistory
         for (OrderEntry orderEntry : this.orderEntries) {
@@ -113,9 +110,4 @@ public class SellerState {
         }
     }
 
-
-//    @JsonIgnore
-//    public void addProductId(Long productId) {
-//        this.productIds.add(productId);
-//    }
 }

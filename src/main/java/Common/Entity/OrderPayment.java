@@ -26,7 +26,7 @@ public class OrderPayment {
     @JsonProperty("createdDate") private LocalDateTime createdDate;
 
     // respective to this line (ie. coupon)
-    @JsonProperty("value") private double value;
+    @JsonProperty("value") private float value;
 
     // vouchers dont need to have this field filled
     @JsonProperty("status") private String status;
@@ -37,7 +37,7 @@ public class OrderPayment {
             @JsonProperty("sequential") int sequential,
             @JsonProperty("installments") int installments,
             @JsonProperty("createdDate") LocalDateTime createdDate,
-            @JsonProperty("value") double value,
+            @JsonProperty("value") float value,
             @JsonProperty("status") String status) {
         this.orderId = orderId;
         this.sequential = sequential;

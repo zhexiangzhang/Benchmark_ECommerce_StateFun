@@ -19,22 +19,22 @@ import java.time.LocalDateTime;
 @Setter
 @ToString
 public class OrderEntry {
-    @JsonProperty("seller_id") private long seller_id;
-    @JsonProperty("order_id") private long order_id;
-    @JsonProperty("package_id") private long package_id;
+    @JsonProperty("seller_id") private int seller_id;
+    @JsonProperty("order_id") private int order_id;
+    @JsonProperty("package_id") private int package_id;
 
-    @JsonProperty("product_id") private long product_id;
+    @JsonProperty("product_id") private int product_id;
     @JsonProperty("product_name") private String product_name = "";
     @JsonProperty("product_category") private String product_category = "";
 
-    @JsonProperty("unit_price") private double unit_price;
+    @JsonProperty("unit_price") private float unit_price;
     @JsonProperty("quantity") private int quantity;
 
-    @JsonProperty("totalItems") private double totalItems;
-    @JsonProperty("totalAmount") private double totalAmount;
-    @JsonProperty("totalInvoice") private double totalInvoice;
-    @JsonProperty("totalIncentive") private double totalIncentive = 0;
-    @JsonProperty("freight_value") private double freight_value;
+    @JsonProperty("totalItems") private float totalItems;
+    @JsonProperty("totalAmount") private float totalAmount;
+    @JsonProperty("totalInvoice") private float totalInvoice;
+    @JsonProperty("totalIncentive") private float totalIncentive = 0;
+    @JsonProperty("freight_value") private float freight_value;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -65,24 +65,24 @@ public class OrderEntry {
 
     @JsonCreator
     public OrderEntry(
-            @JsonProperty("order_id") long order_id,
-            @JsonProperty("seller_id") long seller_id,
+            @JsonProperty("order_id") int order_id,
+            @JsonProperty("seller_id") int seller_id,
 //            @JsonProperty("package_id") long package_id,
-            @JsonProperty("product_id") long product_id,
+            @JsonProperty("product_id") int product_id,
             @JsonProperty("product_name") String product_name,
 
             @JsonProperty("quantity") int quantity,
-            @JsonProperty("totalAmount") double totalAmount,
-            @JsonProperty("totalItems") double totalItems,
+            @JsonProperty("totalAmount") float totalAmount,
+            @JsonProperty("totalItems") float totalItems,
 
 //            @JsonProperty("totalInvoice") double totalInvoice,
 //            @JsonProperty("totalIncentive") double totalIncentive,
 
-            @JsonProperty("freight_value") double freight_value,
+            @JsonProperty("freight_value") float freight_value,
 
 //            @JsonProperty("shipment_date") LocalDateTime shipment_date,
 //            @JsonProperty("delivery_date") LocalDateTime delivery_date,
-            @JsonProperty("unit_price") double unit_price,
+            @JsonProperty("unit_price") float unit_price,
             @JsonProperty("order_status") Enums.OrderStatus order_status
 
 

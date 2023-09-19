@@ -24,7 +24,7 @@ public class ReserveStockEvent {
                     bytes -> mapper.readValue(bytes, ReserveStockEvent.class));
 
     @JsonProperty("customerId")
-    long customerId;
+    int customerId;
 
     @JsonProperty("item")
     BasketItem item;
@@ -33,7 +33,7 @@ public class ReserveStockEvent {
     private Enums.ItemStatus ItemStatus;
 
     @JsonCreator
-    public ReserveStockEvent(@JsonProperty("customerId") long customerId,
+    public ReserveStockEvent(@JsonProperty("customerId") int customerId,
                              @JsonProperty("item") BasketItem item,
                              @JsonProperty("ItemStatus") Enums.ItemStatus ItemStatus
     ) {

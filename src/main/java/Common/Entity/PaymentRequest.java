@@ -11,7 +11,7 @@ import lombok.ToString;
 @ToString
 public class PaymentRequest {
     @JsonProperty("customer") private String customer;
-    @JsonProperty("amount") private double amount;
+    @JsonProperty("amount") private float amount;
 //    @JsonProperty("paymentMethod") private String paymentMethod;
     @JsonProperty("idempotencyKey") private String idempotencyKey;
     @JsonProperty("cardNumber") private String cardNumber;
@@ -19,7 +19,7 @@ public class PaymentRequest {
     @JsonProperty("expirationDate") private String expirationDate;
 
     @JsonCreator
-    public PaymentRequest(@JsonProperty("amount") double amount,
+    public PaymentRequest(@JsonProperty("amount") float amount,
 //                          @JsonProperty("paymentMethod") String paymentMethod,
                           @JsonProperty("idempotencyKey") String idempotencyKey,
                           @JsonProperty("customer") String customer,

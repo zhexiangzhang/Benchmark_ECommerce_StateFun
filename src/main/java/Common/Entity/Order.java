@@ -20,9 +20,9 @@ import java.time.LocalDateTime;
 public class Order {
 
     @JsonProperty("id")
-    private long id;
+    private int id;
     @JsonProperty("customerId")
-    private long customerId;
+    private int customerId;
     @JsonProperty("status")
     private Enums.OrderStatus status;
     @JsonProperty("invoiceNumber")
@@ -62,15 +62,15 @@ public class Order {
     @JsonProperty("countITems")
     private int countItems;
     @JsonProperty("totalAmount")
-    private double totalAmount;
+    private float totalAmount;
     @JsonProperty("totalFreight")
-    private double totalFreight;
+    private float totalFreight;
     @JsonProperty("totalIncentive")
-    private double totalIncentive;
+    private float totalIncentive;
     @JsonProperty("totalInvoice")
-    private double totalInvoice;
+    private float totalInvoice;
     @JsonProperty("totalItems")
-    private double totalItems;
+    private float totalItems;
     @JsonProperty("data")
     private String data;
 

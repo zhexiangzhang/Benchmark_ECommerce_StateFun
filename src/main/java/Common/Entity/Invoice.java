@@ -18,7 +18,7 @@ public class Invoice {
     @JsonProperty("customerCheckout")
     private CustomerCheckout customerCheckout;
     @JsonProperty("orderID")
-    private long orderID;
+    private int orderID;
     @JsonProperty("invoiceNumber")
     private String invoiceNumber;
     @JsonProperty("items")
@@ -29,7 +29,7 @@ public class Invoice {
     @JsonProperty("issueDate")
     private LocalDateTime issueDate;
     @JsonProperty("totalInvoice")
-    private double totalInvoice;
+    private float totalInvoice;
     @JsonProperty("orderPartitionID")
     private String orderPartitionID;
 //    @JsonProperty("instanceId")
@@ -40,10 +40,10 @@ public class Invoice {
 
     @JsonCreator
     public Invoice(@JsonProperty("customerCheckout") CustomerCheckout customerCheckout,
-                   @JsonProperty("orderID") long orderID,
+                   @JsonProperty("orderID") int orderID,
                    @JsonProperty("invoiceNumber") String invoiceNumber,
                    @JsonProperty("items") List<OrderItem> items,
-                   @JsonProperty("totalInvoice") double totalInvoice,
+                   @JsonProperty("totalInvoice") float totalInvoice,
                    @JsonProperty("issueDate") LocalDateTime issueDate,
                    @JsonProperty("orderPartitionID") String orderPartitionID
 //                   @JsonProperty("instanceId") int instanceId

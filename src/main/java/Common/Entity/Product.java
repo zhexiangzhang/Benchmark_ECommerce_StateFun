@@ -16,14 +16,14 @@ import java.time.LocalDateTime;
 @Setter
 @ToString
 public class Product {
-    @JsonProperty("product_id") private long product_id;
-    @JsonProperty("seller_id") private Long seller_id;
+    @JsonProperty("product_id") private int product_id;
+    @JsonProperty("seller_id") private int seller_id;
     @JsonProperty("name") private String name;
     @JsonProperty("sku") private String sku;
     @JsonProperty("category") private String category;
     @JsonProperty("description") private String description;
-    @JsonProperty("price") private Double price;
-    @JsonProperty("freight_value") private Double freight_value;
+    @JsonProperty("price") private float price;
+    @JsonProperty("freight_value") private float freight_value;
     @JsonProperty("status") private String status = "approved";
 //    @JsonProperty("active") private boolean isActive;
     @JsonProperty("version") private int version;
@@ -41,14 +41,14 @@ public class Product {
 
     @JsonCreator
     public Product(
-                   @JsonProperty("seller_id") Long seller_id,
-                   @JsonProperty("product_id") Long product_id,
+                   @JsonProperty("seller_id") int seller_id,
+                   @JsonProperty("product_id") int product_id,
                    @JsonProperty("name") String name,
                    @JsonProperty("sku") String sku,
                    @JsonProperty("category") String category,
                    @JsonProperty("description") String description,
-                   @JsonProperty("price") Double price,
-                   @JsonProperty("freight_value") Double freight_value,
+                   @JsonProperty("price") float price,
+                   @JsonProperty("freight_value") float freight_value,
                    @JsonProperty("status") String status,
                    @JsonProperty("created_at") LocalDateTime createdAt,
                    @JsonProperty("updated_at") LocalDateTime updatedAt,
