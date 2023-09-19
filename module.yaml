@@ -43,18 +43,6 @@ spec:
       valueType: e-commerce.types/CustomerSession
       targets:
         - e-commerce.fns/cart
-#    - topic: addToCart
-#      valueType: e-commerce.types/AddToCart
-#      targets:
-#        - e-commerce.fns/cart
-#    - topic: checkout
-#      valueType: e-commerce.types/CheckoutCart
-#      targets:
-#        - e-commerce.fns/cart
-#    - topic: clearCart
-#      valueType: e-commerce.types/Cleanup
-#      targets:
-#        - e-commerce.fns/cart
 ---
 kind: io.statefun.kafka.v1/ingress
 spec:
