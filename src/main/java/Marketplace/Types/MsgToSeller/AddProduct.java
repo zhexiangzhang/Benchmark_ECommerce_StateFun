@@ -2,7 +2,6 @@ package Marketplace.Types.MsgToSeller;
 
 import Common.Entity.Product;
 import Marketplace.Constant.Constants;
-import Marketplace.Types.MsgToProdFn.GetProduct;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;

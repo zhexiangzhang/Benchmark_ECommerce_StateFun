@@ -152,7 +152,9 @@ public class CartFn implements StatefulFunction {
         Checkout checkout = new Checkout(LocalDateTime.now(), customerCheckout, cartState.getItems());
 
         // order is chose randomly !!!
-        String orderPartitionId = String.valueOf((int) (Math.random() * Constants.nOrderPartitions));
+//        String orderPartitionId = String.valueOf((int) (Math.random() * Constants.nOrderPartitions));
+        String orderPartitionId = context.self().id();
+
         Utils.sendMessage(context, OrderFn.TYPE, orderPartitionId, Checkout.TYPE, checkout);
 
         Seal(cartState, true);

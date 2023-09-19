@@ -129,7 +129,8 @@ public class SellerFn implements StatefulFunction {
         IncreaseStock increaseStock = message.as(IncreaseStock.TYPE);
         StockItem stockItem = increaseStock.getStockItem();
         long productId = stockItem.getProduct_id();
-        int prodFnPartitionID = (int) (productId % Constants.nProductPartitions);
+//        int prodFnPartitionID = (int) (productId % Constants.nProductPartitions);
+        int prodFnPartitionID = (int) (productId);
 //        sendGetProdMsgToProdFn(context, increaseStock, prodFnPartitionID);
         Utils.sendMessage(context,
                 ProductFn.TYPE,

@@ -26,25 +26,23 @@ public class StockState {
                     bytes -> mapper.readValue(bytes, StockState.class));
 
     @JsonProperty("stockItems")
-    public HashMap<Long, StockItem> stockItems;
+    public StockItem stockItem;
 
-    public StockState() {
-        stockItems = new HashMap<>();
-    }
+    public StockState() {}
 
     @JsonCreator
-    public StockState(@JsonProperty("stockItems") HashMap<Long, StockItem> stockItems) {
-        this.stockItems = stockItems;
+    public StockState(@JsonProperty("stockItems") StockItem stockItem) {
+        this.stockItem = stockItem;
     }
 
     @JsonIgnore
-    public StockItem getItem(Long product_id) {
-        return stockItems.get(product_id);
+    public StockItem getItem() {
+        return stockItem;
     }
 
     @JsonIgnore
-    public void addStock(Long product_id, StockItem StockItem) {
-        stockItems.put(product_id, StockItem);
+    public void addStock(StockItem StockItem) {
+        this.stockItem = StockItem;
     }
 
 //    @JsonIgnore

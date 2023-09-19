@@ -89,7 +89,7 @@ public class StockFn implements StatefulFunction {
 
 //        int num = stockItem.getQty_available();
         StockState stockState = getStockState(context);
-        stockState.addStock(productId, stockItem);
+        stockState.addStock(stockItem);
         context.storage().set(STOCKSTATE, stockState);
 
         String log = String.format(getPartionText(context.self().id())
@@ -103,7 +103,7 @@ public class StockFn implements StatefulFunction {
         StockState stockState = getStockState(context);
         UpdateProduct updateProduct = message.as(UpdateProduct.TYPE);
         Long productId = updateProduct.getProduct_id();
-        StockItem stockItem = stockState.getItem(productId);
+        StockItem stockItem = stockState.getItem();
 //        String result = "fail";
 
         Enums.MarkStatus markStatus = Enums.MarkStatus.ERROR;
@@ -182,7 +182,7 @@ public class StockFn implements StatefulFunction {
 
     private Enums.ItemStatus onAtptResvReq(Context context, long productId, int quantity, long customerId, int version) {
         StockState stockState = getStockState(context);
-        StockItem stockItem = stockState.getItem(productId);
+        StockItem stockItem = stockState.getItem();
 
         String partitionText = getPartionText(context.self().id());
         String productIdText = "productId: " + productId;
@@ -219,7 +219,7 @@ public class StockFn implements StatefulFunction {
 
     private void onCancelResvReq(Context context, long productId, int quantity) {
         StockState stockState = getStockState(context);
-        StockItem stockItem = stockState.getItem(productId);
+        StockItem stockItem = stockState.getItem();
         stockItem.setQty_reserved(stockItem.getQty_reserved() - quantity);
         stockItem.setUpdatedAt(LocalDateTime.now());
         context.storage().set(STOCKSTATE, stockState);
@@ -232,7 +232,7 @@ public class StockFn implements StatefulFunction {
     private void paymentConfirm(Context context, long productId, int quantity) {
         // increase order count
         StockState stockState = getStockState(context);
-        StockItem stockItem = stockState.getItem(productId);
+        StockItem stockItem = stockState.getItem();
         // 之前忘写了
         stockItem.setQty_reserved(stockItem.getQty_reserved() - quantity);
         stockItem.setQty_available(stockItem.getQty_available() - quantity);

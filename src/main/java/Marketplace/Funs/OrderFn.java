@@ -141,7 +141,7 @@ public class OrderFn implements StatefulFunction {
 
         // send message to stock
         for (Map.Entry<Long, BasketItem> entry : items.entrySet()) {
-            int stockPartitionId = (int) (entry.getValue().getProductId() % Constants.nStockPartitions);
+            int stockPartitionId = (int) (entry.getValue().getProductId());
             Utils.sendMessage(context,
                     StockFn.TYPE,
                     String.valueOf(stockPartitionId),
@@ -371,7 +371,8 @@ public class OrderFn implements StatefulFunction {
         );
 
         // send message to paymentFn to pay the invoice
-        long paymentPation = orderId % Constants.nPaymentPartitions;
+//        long paymentPation = orderId % Constants.nPaymentPartitions;
+        long paymentPation = customerId;
         Utils.sendMessage(context,
                 PaymentFn.TYPE,
                 String.valueOf(paymentPation),

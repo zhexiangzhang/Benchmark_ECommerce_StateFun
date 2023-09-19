@@ -29,40 +29,23 @@ public class ProductState {
                     bytes -> mapper.readValue(bytes, ProductState.class));
 
     @JsonProperty("products")
-    public HashMap<Long, Product> products;
+    private Product product;
 
-    public ProductState() {
-        products = new HashMap<>();
-    }
+    public ProductState() { }
 
     @JsonCreator
-    public ProductState(@JsonProperty("products") HashMap<Long, Product> products) {
-        this.products = products;
+    public ProductState(@JsonProperty("products") Product product) {
+        this.product = product;
     }
 
     @JsonIgnore
-    public Product getProduct(Long product_id) {
-        return products.get(product_id);
+    public Product getProduct() {
+        return product;
     }
 
     @JsonIgnore
     public void addProduct(Product product) {
-        products.put(product.getProduct_id(), product);
+        this.product = product;
     }
 
-//    @JsonIgnore
-//    public void deleteProduct(Long product_id) {
-//        products.remove(product_id);
-//    }
-
-    @JsonIgnore
-//    find all products of a seller
-    public Product[] getProductsOfSeller(Long seller_id) {
-        List<Product> productsOfSeller = products.values().stream()
-                .filter(product -> product.getSeller_id() == seller_id)
-                .collect(Collectors.toList());
-
-        return productsOfSeller.toArray(new Product[productsOfSeller.size()]);
-
-    }
 }

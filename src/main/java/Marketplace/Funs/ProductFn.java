@@ -1,25 +1,18 @@
 package Marketplace.Funs;
 
-import Common.Entity.TransactionMark;
 import Common.Utils.Utils;
 import Common.Entity.Product;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
 import Marketplace.Types.MsgToProdFn.UpdateSinglePrice;
 import Marketplace.Types.MsgToSeller.*;
-import Marketplace.Types.MsgToProdFn.GetProduct;
 import Marketplace.Types.State.ProductState;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
-import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
-
-//import static Marketplace.Types.Messages.RESERVATIONRESULT_TYPE;
 
 public class ProductFn implements StatefulFunction {
 
@@ -48,11 +41,11 @@ public class ProductFn implements StatefulFunction {
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
         try{
-            if (message.is(GetProduct.TYPE)) {
-                onGetProduct(context, message);
-            }
+//            if (message.is(GetProduct.TYPE)) {
+//                onGetProduct(context, message);
+//            }
             // seller --> product (add product)
-            else if (message.is(AddProduct.TYPE)) {
+            if (message.is(AddProduct.TYPE)) {
                 onAddProduct(context, message);
             }
             // driver --> product (delete product)
@@ -67,10 +60,6 @@ public class ProductFn implements StatefulFunction {
             else if (message.is(UpdateSinglePrice.TYPE)) {
                 onUpdatePrice(context, message);
             }
-//            else if (message.is(Cleanup.TYPE))
-//            {
-//                onCleanup(context);
-//            }
             else {
                 printLog("ProductFn received unknown message type: " + message);
             }
@@ -93,27 +82,6 @@ public class ProductFn implements StatefulFunction {
 
     private ProductState getProductState(Context context) {
         return context.storage().get(PRODUCTSTATE).orElse(new ProductState());
-    }
-
-    private void onGetProduct(Context context, Message message) {
-        ProductState productState = getProductState(context);
-        GetProduct getProduct = message.as(GetProduct.TYPE);
-        Long productId = getProduct.getProduct_id();
-        Product product = productState.getProduct(productId);
-        if (product == null) {
-            String log = String.format(getPartionText(context.self().id())
-                    + "get product failed as product not exist\n"
-                    + "product id = " + productId
-                    + "\n");
-            showLog(log);
-            return;
-        }
-        String log = String.format(getPartionText(context.self().id())
-                + "get product success\n"
-                + product.toString()
-                + "\n");
-
-//        showLog(log);
     }
 
     private void onAddProduct(Context context, Message message) {
@@ -139,7 +107,7 @@ public class ProductFn implements StatefulFunction {
         printLog(log_);
 
         ProductState productState = getProductState(context);
-        Product product = productState.getProduct(productId);
+        Product product = productState.getProduct();
         if (product == null) {
             String log = getPartionText(context.self().id())
                     + "update product failed as product not exist\n"
@@ -161,7 +129,8 @@ public class ProductFn implements StatefulFunction {
                 + "\n";
         showLog(log);
 
-        String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
+//        String stockFnPartitionID = String.valueOf((int) (productId % Constants.nStockPartitions));
+        String stockFnPartitionID = String.valueOf(productId);
         Utils.sendMessage(context, StockFn.TYPE, stockFnPartitionID, UpdateProduct.TYPE, updateProduct);
     }
 
@@ -175,7 +144,7 @@ public class ProductFn implements StatefulFunction {
         printLog(log_);
 
         ProductState productState = getProductState(context);
-        Product product = productState.getProduct(productId);
+        Product product = productState.getProduct();
 
         Enums.MarkStatus markStatus = Enums.MarkStatus.ERROR;
 //        String result = "fail";
@@ -200,7 +169,6 @@ public class ProductFn implements StatefulFunction {
 //            showLog(log);
         }
 
-
         int tid = updatePrice.getInstanceId();
         long sellerId = updatePrice.getSellerId();
 
@@ -213,27 +181,6 @@ public class ProductFn implements StatefulFunction {
                 markStatus,
                 "product");
 
-
-//        // sellerID转换成string
-//        String response = "";
-//        try {
-//            TransactionMark transactionMark = new TransactionMark(productId, tid, String.valueOf(sellerId), result, "product");
-//            ObjectMapper mapper = new ObjectMapper();
-//            response = mapper.writeValueAsString(transactionMark);
-//        } catch (JsonProcessingException e) {
-//            e.printStackTrace();
-//        }
-
-//        System.out.println(getPartionText(context.self().id())+" send updatePrice response to kafka: " + response);
-//        context.send(
-//                KafkaEgressMessage.forEgress(KFK_EGRESS)
-//                        .withTopic("updatePriceTask")
-//                        .withUtf8Key(context.self().id())
-//                        .withUtf8Value(response)
-//                        .build());
-
-//        logger.info("[success] {tid=" + updatePrice.getInstanceId() + "} update product, productFn " + context.self().id());
-//        sendTaskResToSeller(context, product, Enums.TaskType.UpdatePriceType);
         String log = getPartionText(context.self().id())
                 + "update price [success], " + "tid : " + updatePrice.getInstanceId() + "\n";
         printLog(log);

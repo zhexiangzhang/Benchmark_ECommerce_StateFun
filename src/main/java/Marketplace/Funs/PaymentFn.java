@@ -150,7 +150,8 @@ public class PaymentFn implements StatefulFunction {
 
         // send message to stock
         for (OrderItem item : invoice.getItems()) {
-            long partition = (item.getProductId() % Constants.nStockPartitions);
+//            long partition = (item.getProductId() % Constants.nStockPartitions);
+            long partition = item.getProductId();
             Utils.sendMessage(
                     context,
                     StockFn.TYPE,
