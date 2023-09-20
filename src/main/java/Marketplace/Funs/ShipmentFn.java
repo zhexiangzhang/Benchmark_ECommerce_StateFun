@@ -287,12 +287,6 @@ public class ShipmentFn implements StatefulFunction {
             );
         }
 
-        // aggregate operation
-//        计算指定发货单号下的已交付的包裹数量
-//        int countDelivered = (int) packages.get(shipmentId).stream()
-//                .filter(p -> p.getPackageStatus() == Enums.PackageStatus.DELIVERED)
-//                .count();
-//        //        计算指定发货单号下的已交付的包裹数量,因为可能某shipmentid下有别的seller没发货，对该seller来说有更小的shipmentid
         int countDelivered = shipmentState.GetTotalDeliveredPackagesForShipment(shipmentId);
 
 //        String log = getPartionText(context.self().id())
@@ -347,6 +341,11 @@ public class ShipmentFn implements StatefulFunction {
                     context, SellerFn.TYPE, String.valueOf(sellerID),
                     ShipmentNotification.TYPE, shipmentNotification
             );
+
+            //  todo
+            shipments.remove(shipmentId);
+            packages.remove(shipmentId);
+
         }
     }
 }

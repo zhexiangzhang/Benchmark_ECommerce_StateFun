@@ -448,6 +448,10 @@ public class OrderFn implements StatefulFunction {
 
         if (status == Enums.OrderStatus.DELIVERED) {
             orders.get(orderId).setDelivered_customer_date(shipmentNotification.getEventDate());
+
+            // log delivered entries and remove them from state
+            orders.remove(orderId);
+            // todo : write state to db
         }
 
         context.storage().set(ORDERSTATE, orderState);

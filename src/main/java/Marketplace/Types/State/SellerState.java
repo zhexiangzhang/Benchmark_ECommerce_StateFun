@@ -1,7 +1,6 @@
 package Marketplace.Types.State;
 
 import Common.Entity.OrderEntry;
-import Common.Entity.OrderEntryDetails;
 import Common.Entity.Seller;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
@@ -9,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JacksonStdImpl;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.flink.statefun.sdk.java.TypeName;
@@ -17,9 +15,7 @@ import org.apache.flink.statefun.sdk.java.types.SimpleType;
 import org.apache.flink.statefun.sdk.java.types.Type;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 @Setter
@@ -37,23 +33,16 @@ public class SellerState {
     @JsonProperty("seller")
     public Seller seller;
 
-    @JsonProperty("orderEntriesHistory")
-    public Set<OrderEntry> orderEntriesHistory;
-
     // entry in process, only for INVOICED / PAYMENT_PORCESSED / READY_FOR_SHIPMENT / IN_TRANSIT
     @JsonProperty("orderEntries")
     public Set<OrderEntry> orderEntries;
 
-    // DELIVERED
-    @JsonProperty("OrderEntryDetails")
-    public Map<Integer, OrderEntryDetails> orderEntryDetails;
-
     @JsonCreator
     public SellerState() {
         this.seller = new Seller();
-        this.orderEntriesHistory = new HashSet<>();
+//        this.orderEntriesHistory = new HashSet<>();
         this.orderEntries = new HashSet<>();
-        this.orderEntryDetails = new java.util.HashMap<>();
+//        this.orderEntryDetails = new java.util.HashMap<>();
     }
 
     @JsonIgnore
@@ -62,15 +51,10 @@ public class SellerState {
     }
 
     @JsonIgnore
-    public void addOrderEntryDetails(int orderId, OrderEntryDetails orderEntryDetails) {
-        this.orderEntryDetails.put(orderId, orderEntryDetails);
-    }
-
-    @JsonIgnore
     public void moveOrderEntryToHistory(int orderEntryId) {
         OrderEntry orderEntry = this.orderEntries.stream().filter(o -> o.getOrder_id() == orderEntryId).findFirst().get();
         this.orderEntries.remove(orderEntry);
-        this.orderEntriesHistory.add(orderEntry);
+//        this.orderEntriesHistory.add(orderEntry);
     }
 
     @JsonIgnore
@@ -79,35 +63,20 @@ public class SellerState {
         // 则将其移动到orderEntriesHistory
         for (OrderEntry orderEntry : this.orderEntries) {
             if (orderEntry.getOrder_id() == orderEntryId) {
-                this.orderEntries.remove(orderEntry);
+//                this.orderEntries.remove(orderEntry);
                 orderEntry.setOrder_status(orderStatus);
 
                 if (orderStatus == Enums.OrderStatus.IN_TRANSIT) {
                     orderEntry.setShipment_date(updateTime);
                 }
 
-                if (orderStatus == Enums.OrderStatus.INVOICED
-                        || orderStatus == Enums.OrderStatus.PAYMENT_PROCESSED
-                        || orderStatus == Enums.OrderStatus.READY_FOR_SHIPMENT
-                        || orderStatus == Enums.OrderStatus.IN_TRANSIT)
-                {
-                    this.orderEntries.add(orderEntry);
-                }
-                else
-                {
-                    this.orderEntriesHistory.add(orderEntry);
+                if (orderStatus == Enums.OrderStatus.DELIVERED) {
+                    orderEntries.remove(orderEntry);
                 }
                 break;
             }
         }
 
-        // 更新orderEntryDetails
-        for (OrderEntryDetails orderEntryDetails : this.orderEntryDetails.values()) {
-            if (orderEntryDetails.getOrderId() == orderEntryId) {
-                orderEntryDetails.setOrder_status(orderStatus);
-                break;
-            }
-        }
     }
 
 }

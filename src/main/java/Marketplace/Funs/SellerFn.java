@@ -13,7 +13,6 @@ import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.types.Types;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -61,7 +60,7 @@ public class SellerFn implements StatefulFunction {
                 onQueryDashboard(context, message);
             }
             else if (message.is(PaymentNotification.TYPE)) {
-                UpdateOrderStatus(context, message);
+                ProcessPaymentResult(context, message);
             }
             else if (message.is(ShipmentNotification.TYPE)) {
                 ProcessShipmentNotification(context, message);
@@ -171,24 +170,6 @@ public class SellerFn implements StatefulFunction {
             sellerState.addOrderEntry(orderEntry);
         }
 
-        // order details
-        OrderEntryDetails orderEntryDetail = new OrderEntryDetails(
-                orderId,
-                invoice.getIssueDate(),
-                Enums.OrderStatus.INVOICED,
-                invoice.getCustomerCheckout().getCustomerId(),
-                invoice.getCustomerCheckout().getFirstName(),
-                invoice.getCustomerCheckout().getLastName(),
-                invoice.getCustomerCheckout().getStreet(),
-                invoice.getCustomerCheckout().getComplement(),
-                invoice.getCustomerCheckout().getCity(),
-                invoice.getCustomerCheckout().getState(),
-                invoice.getCustomerCheckout().getZipCode(),
-                invoice.getCustomerCheckout().getCardBrand(),
-                invoice.getCustomerCheckout().getInstallments()
-            );
-        sellerState.addOrderEntryDetails(orderId, orderEntryDetail);
-
         context.storage().set(SELLERSTATE, sellerState);
     }
 
@@ -196,7 +177,7 @@ public class SellerFn implements StatefulFunction {
         SellerState sellerState = getSellerState(context);
 
         Set<OrderEntry> orderEntries = sellerState.getOrderEntries();
-        Map<Integer, OrderEntryDetails> orderEntryDetails = sellerState.getOrderEntryDetails();
+//        Map<Integer, OrderEntryDetails> orderEntryDetails = sellerState.getOrderEntryDetails();
 
         int sellerID = sellerState.getSeller().getId();
         int tid = message.as(QueryDashboard.TYPE).getTid();
@@ -215,25 +196,9 @@ public class SellerFn implements StatefulFunction {
                 (float) orderEntries.stream().mapToDouble(OrderEntry::getTotalItems).sum()
         );
 
-        Set<OrderEntry> queryEnTry = new HashSet<>();
-        // 1.只保留order_status == OrderStatus.INVOICED || oe.order_status == OrderStatus.READY_FOR_SHIPMENT ||
-        //                                                               oe.order_status == OrderStatus.IN_TRANSIT || oe.order_status == OrderStatus.PAYMENT_PROCESSED)
-        // 2.将OrderEntryDetails加入到OrderEntry中
-        for (OrderEntry oe : orderEntries) {
-            Enums.OrderStatus orderStatus = oe.getOrder_status();
-            if (orderStatus == Enums.OrderStatus.INVOICED ||
-                    orderStatus == Enums.OrderStatus.READY_FOR_SHIPMENT ||
-                    orderStatus == Enums.OrderStatus.IN_TRANSIT ||
-                    orderStatus == Enums.OrderStatus.PAYMENT_PROCESSED) {
-               // 将对应的OrderEntryDetails加入到OrderEntry中
-                oe.setOrderEntryDetails(orderEntryDetails.get(oe.getOrder_id()));
-                queryEnTry.add(oe);
-            }
-        }
-
         SellerDashboard sellerDashboard = new SellerDashboard(
                 orderSellerView,
-                queryEnTry
+                orderEntries
         );
 
         Utils.notifyTransactionComplete(
@@ -248,7 +213,7 @@ public class SellerFn implements StatefulFunction {
 //        logger.info("[success] {tid=" + tid + "} query dashboard, sellerFn " + context.self().id());
     }
 
-    private void UpdateOrderStatus(Context context, Message message) {
+    private void ProcessPaymentResult(Context context, Message message) {
         SellerState sellerState = getSellerState(context);
         PaymentNotification orderStateUpdate = message.as(PaymentNotification.TYPE);
 
@@ -276,7 +241,6 @@ public class SellerFn implements StatefulFunction {
         }
 
         sellerState.updateOrderStatus(shipmentNotification.getOrderId(), orderStatus, shipmentNotification.getEventDate());
-
 
         context.storage().set(SELLERSTATE, sellerState);
 //        UpdateOrderStatus(context, orderId, status, eventTime);

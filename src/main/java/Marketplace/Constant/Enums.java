@@ -36,10 +36,6 @@ public class Enums {
 
     public enum OrderStatus
     {
-        // OrderFn
-        CREATED,
-        PROCESSING,
-//        CANCLED, // wrong
         INVOICED,
         SHIPPED,
         DELIVERED,

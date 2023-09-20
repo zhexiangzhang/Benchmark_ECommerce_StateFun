@@ -53,12 +53,6 @@ public class OrderEntry {
     @JsonProperty("order_status") private Enums.OrderStatus order_status;
     @JsonProperty("delivery_status") private Enums.PackageStatus delivery_status;
 
-    // 对于 OrderEntryDetails 这个字段，所有的order共享一个，作为外键，只有在查询时数据才会被填充，所以我们也把他放在额外的表
-    // from down below, all the same. could be normalized.... e.g., order_details table, shared across sellers
-    //  [ForeignKey("order_id")]
-    @JsonProperty("orderEntryDetails")
-    public OrderEntryDetails orderEntryDetails = null;
-
     @JsonCreator
     public OrderEntry() {
     }
@@ -75,20 +69,11 @@ public class OrderEntry {
             @JsonProperty("totalAmount") float totalAmount,
             @JsonProperty("totalItems") float totalItems,
 
-//            @JsonProperty("totalInvoice") double totalInvoice,
-//            @JsonProperty("totalIncentive") double totalIncentive,
-
             @JsonProperty("freight_value") float freight_value,
 
-//            @JsonProperty("shipment_date") LocalDateTime shipment_date,
-//            @JsonProperty("delivery_date") LocalDateTime delivery_date,
             @JsonProperty("unit_price") float unit_price,
             @JsonProperty("order_status") Enums.OrderStatus order_status
 
-
-//            @JsonProperty("product_category") String product_category,
-
-//            @JsonProperty("delivery_status") Enums.ShipmentStatus delivery_status
     ) {
         this.seller_id = seller_id;
         this.order_id = order_id;

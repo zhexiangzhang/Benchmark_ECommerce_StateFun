@@ -101,7 +101,7 @@ Host myhost
        dotnet run --project Silo
        dotnet run --project Client Configuration
 
-git commit -m "fix some bug, runnable now"
+git commit -m "change field type, fix all bugs known"
 提交代码:
     git status
     git add .
