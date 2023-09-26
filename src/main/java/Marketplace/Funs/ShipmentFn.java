@@ -1,10 +1,13 @@
 package Marketplace.Funs;
 
 import Common.Entity.*;
+import Common.Utils.PostgreHelper;
 import Common.Utils.Utils;
 import Marketplace.Constant.Enums;
 import Marketplace.Constant.Constants;
 import Marketplace.Types.State.ShipmentState;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
 import Marketplace.Types.MsgToOrderFn.ShipmentNotification;
 import Marketplace.Types.MsgToSeller.DeliveryNotification;
@@ -12,6 +15,10 @@ import Marketplace.Types.MsgToShipment.GetPendingPackages;
 import Marketplace.Types.MsgToShipment.ProcessShipment;
 import Marketplace.Types.MsgToShipment.UpdateShipment;
 import org.apache.flink.statefun.sdk.java.message.Message;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -32,6 +39,20 @@ public class ShipmentFn implements StatefulFunction {
             .withValueSpecs(SHIPMENTIDSTATE, SHIPMENT_STATE)
             .withSupplier(ShipmentFn::new)
             .build();
+
+    private static Connection conn;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    static {
+        try {
+            conn = PostgreHelper.getConnection();
+            PostgreHelper.initLogTable(conn);
+            System.out.println("Connection established for ShipmentFn ...............");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
@@ -227,7 +248,7 @@ public class ShipmentFn implements StatefulFunction {
      */
     // TODO: 6/30/2023 we only need update the oldest? or should we update by seller id
     // 每次更新整个shipment，shipment包含多个package
-    private void onUpdateShipment(Context context, Message message) {
+    private void onUpdateShipment(Context context, Message message) throws SQLException, JsonProcessingException {
 
         ShipmentState shipmentState = getShipmentState(context);
         Map<Integer, List<PackageItem>> packages = shipmentState.getPackages();
@@ -256,7 +277,7 @@ public class ShipmentFn implements StatefulFunction {
         Utils.sendMessageToCaller(context, UpdateShipment.TYPE, updateShipment);
     }
 
-    private void updatePackageDelivery(Context context, List<PackageItem> packageToUpdate, int sellerID) {
+    private void updatePackageDelivery(Context context, List<PackageItem> packageToUpdate, int sellerID) throws SQLException, JsonProcessingException {
         ShipmentState shipmentState = getShipmentState(context);
         Map<Integer, Shipment> shipments = shipmentState.getShipments();
         Map<Integer, List<PackageItem>> packages = shipmentState.getPackages();
@@ -343,6 +364,15 @@ public class ShipmentFn implements StatefulFunction {
             );
 
             //  todo
+
+            String type = "ShipmentFn";
+            String id_ = String.valueOf(shipment.getShipmentId());
+            String orderJson = objectMapper.writeValueAsString(shipment);
+
+            Statement st = conn.createStatement();
+            String sql = String.format("INSERT INTO public.log (\"type\",\"key\",\"value\") VALUES ('%s', '%s', '%s')", type, id_, orderJson);
+            st.execute(sql);
+
             shipments.remove(shipmentId);
             packages.remove(shipmentId);
 

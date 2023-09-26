@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Entity not present in olist original data set
@@ -16,6 +17,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
+@ToString
 public class BasketItem {
 
     @JsonProperty("SellerId") private int sellerId;

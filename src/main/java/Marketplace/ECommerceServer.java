@@ -12,10 +12,6 @@ import org.apache.flink.statefun.sdk.java.handler.RequestReplyHandler;
 public final class ECommerceServer {
     public static void main(String[] args) {
         final StatefulFunctions functions = new StatefulFunctions();
-        functions.withStatefulFunction(TempUserLoginFn.SPEC);
-        functions.withStatefulFunction(TempGreetFn.SPEC);
-//        functions.withStatefulFunction(TestFn.TYPE, TestFn::new)
-
         functions.withStatefulFunction(CartFn.SPEC);
         functions.withStatefulFunction(OrderFn.SPEC);
         functions.withStatefulFunction(SellerFn.SPEC);

@@ -1,6 +1,7 @@
 package Marketplace.Funs;
 
 import Common.Entity.*;
+import Common.Utils.PostgreHelper;
 import Common.Utils.Utils;
 import Marketplace.Constant.Constants;
 import Marketplace.Constant.Enums;
@@ -13,10 +14,15 @@ import Marketplace.Types.MsgToStock.ReserveStockEvent;
 import Marketplace.Types.State.ReserveStockTaskState;
 import Marketplace.Types.State.OrderState;
 import Marketplace.Types.State.CustomerCheckoutInfoState;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.types.Types;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -42,6 +48,20 @@ public class OrderFn implements StatefulFunction {
             .withValueSpecs(ORDERIDSTATE, ASYNCTASKSTATE, TEMPCKINFOSTATE, ORDERSTATE, ORDERHISTORYIDSTATE)
             .withSupplier(OrderFn::new)
             .build();
+
+    private static Connection conn;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    static {
+        try {
+            conn = PostgreHelper.getConnection();
+            PostgreHelper.initLogTable(conn);
+            System.out.println("Connection established for OrderFn ...............");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
@@ -151,12 +171,6 @@ public class OrderFn implements StatefulFunction {
                             entry.getValue(),
                             Enums.ItemStatus.UNKNOWN));
         }
-
-        // log
-//        String log = getPartionText(context.self().id())
-//                + "OrderFn: attempt reservation, message sent to stock, customerId: "
-//                + customerId + "\n";
-//        showLogPrt(log);
     }
 
 
@@ -412,7 +426,7 @@ public class OrderFn implements StatefulFunction {
         }
     }
 
-    private void ProcessShipmentNotification(Context context, Message message) {
+    private void ProcessShipmentNotification(Context context, Message message) throws SQLException, JsonProcessingException {
 
         OrderState orderState = getOrderState(context);
         Map<Integer, Order> orders = orderState.getOrders();
@@ -449,9 +463,18 @@ public class OrderFn implements StatefulFunction {
         if (status == Enums.OrderStatus.DELIVERED) {
             orders.get(orderId).setDelivered_customer_date(shipmentNotification.getEventDate());
 
+            Order order = orders.get(orderId);
             // log delivered entries and remove them from state
+
+            String type = "OrderFn";
+            String id_ = String.valueOf(order.getId());
+            String orderJson = objectMapper.writeValueAsString(order);
+
+            Statement st = conn.createStatement();
+            String sql = String.format("INSERT INTO public.log (\"type\",\"key\",\"value\") VALUES ('%s', '%s', '%s')", type, id_, orderJson);
+            st.execute(sql);
+
             orders.remove(orderId);
-            // todo : write state to db
         }
 
         context.storage().set(ORDERSTATE, orderState);

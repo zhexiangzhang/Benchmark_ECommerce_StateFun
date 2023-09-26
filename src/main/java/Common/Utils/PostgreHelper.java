@@ -1,4 +1,4 @@
-package Utils;
+package Common.Utils;
 
 import java.sql.*;
 
@@ -6,8 +6,8 @@ public class PostgreHelper {
 
     // https://jdbc.postgresql.org/documentation/datasource/#example111-datasource-code-example
     public static Connection getConnection() throws SQLException {
-        String url = "jdbc:postgresql://localhost/postgres?user=postgres&password=password";
-        return DriverManager.getConnection(url);
+        String url = "jdbc:postgresql://postgres:5432/ucloud";
+        return DriverManager.getConnection(url, "ucloud", "ucloud");
     }
 
     public static void initLogTable(Connection conn) throws SQLException {

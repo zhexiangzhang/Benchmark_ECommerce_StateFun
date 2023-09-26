@@ -19,16 +19,25 @@ services:
   #    StateFun runtime
   ###############################################################
 
-#  statefun:
-#    image: apache/flink-statefun-playground:3.2.0-1.0
+  #  statefun:
+  #    image: apache/flink-statefun-playground:3.2.0-1.0
+  #    ports:
+  #      - "8081:8081"
+  #      - "8090:8090"
+  #      - "8091:8091"
+  #    depends_on:
+  #      - e-commerce-functions
+  #    volumes:
+  #      - ./module.yaml:/module.yaml
+
+#  postgres:
+#    image: postgres:latest
+#    container_name: postgres
 #    ports:
-#      - "8081:8081"
-#      - "8090:8090"
-#      - "8091:8091"
-#    depends_on:
-#      - e-commerce-functions
-#    volumes:
-#      - ./module.yaml:/module.yaml
+#      - "5432:5432"
+#    environment:
+#      - POSTGRES_USER=root
+#      - POSTGRES_PASSWORD=password
 
   master:
     image: apache/flink-statefun:latest

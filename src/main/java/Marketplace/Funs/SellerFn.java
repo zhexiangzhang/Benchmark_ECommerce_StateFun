@@ -1,6 +1,7 @@
 package Marketplace.Funs;
 
 import Common.Entity.*;
+import Common.Utils.PostgreHelper;
 import Common.Utils.Utils;
 import Marketplace.Constant.Enums;
 import Marketplace.Constant.Constants;
@@ -9,10 +10,17 @@ import Marketplace.Types.MsgToOrderFn.ShipmentNotification;
 import Marketplace.Types.MsgToPaymentFn.InvoiceIssued;
 import Marketplace.Types.MsgToSeller.*;
 import Marketplace.Types.State.SellerState;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.types.Types;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -34,6 +42,20 @@ public class SellerFn implements StatefulFunction {
 
     private String getPartionText(String id) {
         return String.format(" [ SellerFn partitionId %s ] ", id);
+    }
+
+    private static Connection conn;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    static {
+        try {
+            conn = PostgreHelper.getConnection();
+            PostgreHelper.initLogTable(conn);
+            System.out.println("Connection established for SellerFn ...............");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -213,7 +235,7 @@ public class SellerFn implements StatefulFunction {
 //        logger.info("[success] {tid=" + tid + "} query dashboard, sellerFn " + context.self().id());
     }
 
-    private void ProcessPaymentResult(Context context, Message message) {
+    private void ProcessPaymentResult(Context context, Message message) throws SQLException, JsonProcessingException {
         SellerState sellerState = getSellerState(context);
         PaymentNotification orderStateUpdate = message.as(PaymentNotification.TYPE);
 
@@ -223,12 +245,12 @@ public class SellerFn implements StatefulFunction {
 //        }
 
         Enums.OrderStatus orderStatus = orderStateUpdate.getOrderStatus();
-        sellerState.updateOrderStatus(orderId, orderStatus, null);
+        updateOrderStatus(sellerState.getOrderEntries(), orderId, orderStatus, null);
 
         context.storage().set(SELLERSTATE, sellerState);
     }
 
-    private void ProcessShipmentNotification(Context context, Message message) {
+    private void ProcessShipmentNotification(Context context, Message message) throws SQLException, JsonProcessingException {
         SellerState sellerState = getSellerState(context);
         ShipmentNotification shipmentNotification = message.as(ShipmentNotification.TYPE);
         Enums.OrderStatus orderStatus = null;
@@ -240,7 +262,7 @@ public class SellerFn implements StatefulFunction {
             orderStatus = Enums.OrderStatus.DELIVERED;
         }
 
-        sellerState.updateOrderStatus(shipmentNotification.getOrderId(), orderStatus, shipmentNotification.getEventDate());
+        updateOrderStatus(sellerState.getOrderEntries(), shipmentNotification.getOrderId(), orderStatus, shipmentNotification.getEventDate());
 
         context.storage().set(SELLERSTATE, sellerState);
 //        UpdateOrderStatus(context, orderId, status, eventTime);
@@ -265,5 +287,34 @@ public class SellerFn implements StatefulFunction {
         }
 
         context.storage().set(SELLERSTATE, sellerState);
+    }
+
+    public void updateOrderStatus(Set<OrderEntry> orderEntries, int orderEntryId, Enums.OrderStatus orderStatus, LocalDateTime updateTime) throws JsonProcessingException, SQLException {
+        // 更新orderEntries,如果更新后的不属于only for INVOICED / PAYMENT_PORCESSED / READY_FOR_SHIPMENT / IN_TRANSIT，
+        // 则将其移动到orderEntriesHistory
+        for (OrderEntry orderEntry : orderEntries) {
+            if (orderEntry.getOrder_id() == orderEntryId) {
+//                this.orderEntries.remove(orderEntry);
+                orderEntry.setOrder_status(orderStatus);
+
+                if (orderStatus == Enums.OrderStatus.IN_TRANSIT) {
+                    orderEntry.setShipment_date(updateTime);
+                }
+
+                if (orderStatus == Enums.OrderStatus.DELIVERED) {
+                    orderEntries.remove(orderEntry);
+
+                    String type = "SellerFn";
+                    String id_ = String.valueOf(orderEntry.getOrder_id());
+                    String orderJson = objectMapper.writeValueAsString(orderEntry);
+
+                    Statement st = conn.createStatement();
+                    String sql = String.format("INSERT INTO public.log (\"type\",\"key\",\"value\") VALUES ('%s', '%s', '%s')", type, id_, orderJson);
+                    st.execute(sql);
+                }
+                break;
+            }
+        }
+
     }
 }

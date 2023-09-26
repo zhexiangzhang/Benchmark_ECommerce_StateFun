@@ -3,11 +3,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 
 @Setter
 @Getter
+@ToString
 public class CustomerCheckout {
 
     @JsonProperty("CustomerId") private int customerId;

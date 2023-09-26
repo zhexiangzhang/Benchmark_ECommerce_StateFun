@@ -25,9 +25,6 @@ public class PaymentFn implements StatefulFunction {
 
     static final TypeName TYPE = TypeName.typeNameOf(Constants.FUNS_NAMESPACE, "payment");
 
-//    static final ValueSpec<PaymentAsyncTaskState> PAYMENT_ASYNC_TASK_STATE =
-//            ValueSpec.named("paymentAsyncTaskState")
-//                    .withCustomType(PaymentAsyncTaskState.TYPE);
     static final ValueSpec<PaymentState> PAYMENT_STATE = ValueSpec.named("paymentState").withCustomType(PaymentState.TYPE);
 
     public static final StatefulFunctionSpec SPEC = StatefulFunctionSpec.builder(TYPE)
@@ -44,10 +41,6 @@ public class PaymentFn implements StatefulFunction {
             if (message.is(InvoiceIssued.TYPE)) {
                 onProcessPayment(context, message);
             }
-//            else if (message.is(Cleanup.TYPE))
-//            {
-//                onCleanup(context);
-//            }
         } catch (Exception e) {
             System.out.println("PaymentFn Exception !!!!!!!!!!!!!!!!");
             e.printStackTrace();
