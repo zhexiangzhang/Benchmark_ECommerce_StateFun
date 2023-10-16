@@ -11,14 +11,13 @@ import Marketplace.Constant.Constants;
 import Marketplace.Types.MsgToCartFn.*;
 import Marketplace.Types.State.CartState;
 import Marketplace.Types.State.CustomerState;
-import org.apache.commons.math3.analysis.function.Add;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
 
 public class CartFn implements StatefulFunction {
 
     static final TypeName TYPE = TypeName.typeNameOf(Constants.FUNS_NAMESPACE, "cart");
-    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
+//    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
 
     static final ValueSpec<CartState> CARTSTATE = ValueSpec.named("cartState").withCustomType(CartState.TYPE);
 
@@ -42,8 +41,20 @@ public class CartFn implements StatefulFunction {
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
         try {
-            if (message.is(CustomerSession.TYPE)) {
-                onCustomerSession(context, message);
+//            if (message.is(CustomerSession.TYPE)) {
+//                onCustomerSession(context, message);
+//            }
+            if (message.is(AddToCart.TYPE)) {
+                onAddToCart(context, message.as(AddToCart.TYPE));
+            }
+//            else if (message.is(CheckoutCart.TYPE)) {
+//                onNotifyCheckout(context, message.as(CheckoutCart.TYPE).getCustomerCheckout());
+//            }
+            else if (message.is(CustomerCheckout.TYPE)) {
+                onNotifyCheckout(context, message.as(CustomerCheckout.TYPE));
+            }
+            else if (message.is(Cleanup.TYPE)) {
+                onCleanup(context);
             }
             // order ---> cart (send checkout result)
             else if (message.is(GetCart.TYPE)) { onGetCart(context); }
@@ -58,21 +69,21 @@ public class CartFn implements StatefulFunction {
         System.out.println(log);
     }
 
-    private void onCustomerSession(Context context, Message message) {
-        CustomerSession customerSession = message.as(CustomerSession.TYPE);
-        String log = getPartionText(context.self().id())
-                + "customer session [receive] \n";
-        printLog(log);
-
-        String type = customerSession.getType();
-        if (type.equals("addToCart")) {
-            onAddToCart(context, customerSession.getAddToCart());
-        } else if (type.equals("checkout")) {
-            onNotifyCheckout(context, customerSession.getCustomerCheckout());
-        } else if (type.equals("clearCart")) {
-            onCleanup(context);
-        }
-    }
+//    private void onCustomerSession(Context context, Message message) {
+//        CustomerSession customerSession = message.as(CustomerSession.TYPE);
+//        String log = getPartionText(context.self().id())
+//                + "customer session [receive] \n";
+//        printLog(log);
+//
+//        String type = customerSession.getType();
+//        if (type.equals("addToCart")) {
+//            onAddToCart(context, customerSession.getAddToCart());
+//        } else if (type.equals("checkout")) {
+//            onNotifyCheckout(context, customerSession.getCustomerCheckout());
+//        } else if (type.equals("clearCart")) {
+//            onCleanup(context);
+//        }
+//    }
 
     private void onAddToCart(Context context, AddToCart addToCart) {
         CartState cartState = getCartState(context);

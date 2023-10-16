@@ -12,12 +12,18 @@ import org.apache.flink.statefun.sdk.java.io.KafkaEgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.message.MessageBuilder;
 import org.apache.flink.statefun.sdk.java.types.Type;
+import org.apache.flink.statefun.sdk.kafka.KafkaTopicPartition;
+
 
 import java.util.Optional;
 
 public class Utils {
 
     static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
+
+//    static final TypeName KFK_EGRESS_Seller = TypeName.typeNameOf("e-commerce.fns", "kafkaSinkSeller");
+//    static final TypeName KFK_EGRESS_ShipmentUpd = TypeName.typeNameOf("e-commerce.fns", "kafkaSinkShipmentUpd");
+//    static final TypeName KFK_EGRESS_Checkout = TypeName.typeNameOf("e-commerce.fns", "kafkaSinkCheckout");
 
     public static String getFnName(String fnType) {
         String[] fnTypeArr = fnType.split("/");
@@ -56,10 +62,27 @@ public class Utils {
             e.printStackTrace();
         }
 
+        TypeName EGRESS_KAFKA = KFK_EGRESS;
+//        TypeName EGRESS_KAFKA = null;
+//        if (transactionType.equals(Enums.TransactionType.checkoutTask.toString())) {
+//            EGRESS_KAFKA = KFK_EGRESS_Checkout;
+//        } else if (transactionType.equals(Enums.TransactionType.updateDeliveryTask.toString())) {
+//            EGRESS_KAFKA = KFK_EGRESS_ShipmentUpd;
+//        } else if (transactionType.equals(Enums.TransactionType.updatePriceTask.toString())) {
+//            EGRESS_KAFKA = KFK_EGRESS_Seller;
+//        } else if (transactionType.equals(Enums.TransactionType.updateProductTask.toString())) {
+//            EGRESS_KAFKA = KFK_EGRESS_Seller;
+//        } else if (transactionType.equals(Enums.TransactionType.queryDashboardTask.toString())) {
+//            EGRESS_KAFKA = KFK_EGRESS_Seller;
+//        } else {
+//            throw new IllegalStateException("error in notifyTransactionComplete");
+//        }
+
         context.send(
-                KafkaEgressMessage.forEgress(KFK_EGRESS)
+                KafkaEgressMessage.forEgress(EGRESS_KAFKA)
                         .withTopic(transactionType)
-                        .withUtf8Key(functionID)
+//                        .withUtf8Key(functionID)
+                        .withUtf8Key("")  // key is null, so kafka will use round-robin to distribute the message
                         .withUtf8Value(response)
                         .build());
     }

@@ -52,8 +52,8 @@ taskmanager.state.local.root-dirs: file:///local/state/recovery
 # Recommended memory configurations. Users may change according to their needs.
 #==============================================================================
 
-jobmanager.memory.process.size: 4g
-taskmanager.memory.process.size: 16g
+jobmanager.memory.process.size: 1g
+taskmanager.memory.process.size: 96g
 
 #==============================================================================
 # Support easy upgrades as the module.yaml file updates
@@ -65,5 +65,5 @@ execution.savepoint.ignore-unclaimed-state: true
 #==============================================================================
 # parallelism configurations
 #==============================================================================
-#taskmanager.numberOfTaskSlots: 4
-#parallelism.default: 6
+taskmanager.numberOfTaskSlots: 32
+parallelism.default: 1

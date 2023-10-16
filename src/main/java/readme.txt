@@ -2,6 +2,12 @@ docker images
 
 docker save -o Ecommerce.tar e-commerce-master-e-commerce-functions:latest
 
+udocker ps
+udocker rm <container name>
+
+udocker images
+udocker rmi image_name_or_id
+
 
 chmod +x docker-install.sh
 ./docker-install.sh
@@ -101,7 +107,7 @@ Host myhost
        dotnet run --project Silo
        dotnet run --project Client Configuration
 
-git commit -m "clear concluded state for Seller, order, shipment"
+git commit -m "postgresql added, pass test on ucould"
 提交代码:
     git status
     git add .

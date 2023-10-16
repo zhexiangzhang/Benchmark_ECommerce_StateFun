@@ -1,5 +1,6 @@
 package Marketplace.Funs;
 
+import Common.Utils.PostgreHelper;
 import Common.Utils.Utils;
 import Common.Entity.Product;
 import Marketplace.Constant.Constants;
@@ -10,6 +11,7 @@ import Marketplace.Types.State.ProductState;
 import org.apache.flink.statefun.sdk.java.*;
 import org.apache.flink.statefun.sdk.java.message.Message;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -29,7 +31,7 @@ public class ProductFn implements StatefulFunction {
             .build();
 
     private static final TypeName ECOMMERCE_EGRESS = TypeName.typeNameOf(Constants.EGRESS_NAMESPACE, "egress");
-    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
+//    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
 
     private String getPartionText(String id) {
         return String.format("[ ProductFn partitionId %s ] ", id);
@@ -37,6 +39,8 @@ public class ProductFn implements StatefulFunction {
     private String getPartionTextInline(String id) {
         return String.format("\n[ ProductFn partitionId %s ] ", id);
     }
+
+    private boolean isFirstInvoke = true;
 
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
@@ -99,6 +103,33 @@ public class ProductFn implements StatefulFunction {
     }
 
     private void onUpdateProduct(Context context, Message message) {
+        if (isFirstInvoke) {
+            isFirstInvoke = false;
+            Product product = new Product(
+                    1,
+                    2,
+                    "test",
+                    "1",
+                    "1",
+                    "1",
+                    1,
+                    1,
+                    "1",
+                    LocalDateTime.now(),
+                    LocalDateTime.now(),
+                    0
+            );
+
+            ProductState productState = getProductState(context);
+            productState.addProduct(product);
+            context.storage().set(PRODUCTSTATE, productState);
+
+            String log = getPartionText(context.self().id())
+                    + "init product" + "\n";
+            printLog(log);
+        }
+
+
         UpdateProduct updateProduct = message.as(UpdateProduct.TYPE);
         int productId = updateProduct.getProduct_id();
 

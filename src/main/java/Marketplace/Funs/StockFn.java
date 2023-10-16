@@ -1,6 +1,7 @@
 package Marketplace.Funs;
 
 import Common.Entity.BasketItem;
+import Common.Entity.Product;
 import Common.Entity.TransactionMark;
 import Common.Entity.StockItem;
 import Common.Utils.Utils;
@@ -10,6 +11,7 @@ import Marketplace.Types.MsgToSeller.UpdateProduct;
 import Marketplace.Types.MsgToSeller.IncreaseStock;
 import Marketplace.Types.MsgToStock.ReserveStockEvent;
 import Marketplace.Types.MsgToStock.ConfirmStockEvent;
+import Marketplace.Types.State.ProductState;
 import Marketplace.Types.State.StockState;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,11 +37,13 @@ public class StockFn implements StatefulFunction {
             .withSupplier(StockFn::new)
             .build();
 
+    private boolean isFirstInvoke = true;
+
     private String getPartionText(String id) {
         return String.format("[ StockFn partitionId %s ] ", id);
     }
 
-    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
+//    static final TypeName KFK_EGRESS = TypeName.typeNameOf("e-commerce.fns", "kafkaSink");
 
     @Override
     public CompletableFuture<Void> apply(Context context, Message message) throws Throwable {
@@ -100,6 +104,29 @@ public class StockFn implements StatefulFunction {
     }
 
     private void onUpdateProduct(Context context, Message message) {
+
+        if (isFirstInvoke) {
+            isFirstInvoke = false;
+                StockItem stockItem = new StockItem(
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        "1",
+                        0
+                );
+
+            StockState stockState = getStockState(context);
+            stockState.addStock(stockItem);
+            context.storage().set(STOCKSTATE, stockState);
+
+            String log = getPartionText(context.self().id())
+                    + "init product" + "\n";
+            printLog(log);
+        }
+
         StockState stockState = getStockState(context);
         UpdateProduct updateProduct = message.as(UpdateProduct.TYPE);
         int productId = updateProduct.getProduct_id();
